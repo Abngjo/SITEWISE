@@ -9,6 +9,7 @@ import sys
 import uuid
 from datetime import date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,9 +21,22 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+try:  # load .env before importing modules that read env vars at import time
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env")
+except ImportError:
+    pass
+
 from ai import duplicates, inference  # noqa: E402
-from backend.engines import compliance, payment, report, schedule  # noqa: E402
+from backend.engines import compliance, letter, payment, report, schedule  # noqa: E402
 from backend.store import DATA_DIR, store  # noqa: E402
+
+QATAR_TZ = ZoneInfo("Asia/Qatar")  # server runs in UTC; all timestamps shown in Doha time
+
+
+def now_qatar() -> str:
+    return datetime.now(QATAR_TZ).replace(tzinfo=None).isoformat(timespec="seconds")
+
 
 UPLOAD_DIR = ROOT / "data" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -176,6 +190,12 @@ def get_report(lang: str = "en"):
                         dup_flags, inference.cost_summary(), lang)
 
 
+@app.get("/api/audit-letter")
+def audit_letter(lang: str = "en"):
+    """Draft letter to the contractor. Figures from code; LLM only writes the opening paragraph."""
+    return letter.build(store, payments_audit(), "ar" if lang == "ar" else "en")
+
+
 # ------------------------------- write endpoints ------------------------------
 @app.post("/api/evidence")
 async def upload_evidence(
@@ -202,7 +222,7 @@ async def upload_evidence(
         "evidence_id": eid, "certificate_no": store.project["current_certificate"],
         "filename": file.filename, "path": str(path), "element_id": element_id,
         "capture_time": capture_time, "time_source": time_source,
-        "upload_time": datetime.now().isoformat(timespec="seconds"), "uploader": uploader,
+        "upload_time": now_qatar(), "uploader": uploader,
         "sha256": duplicates.sha256_bytes(b), "phash": duplicates.phash_bytes(b),
         "embedding": inference.embed(b),
     }
@@ -210,7 +230,8 @@ async def upload_evidence(
 
     declared = store.elements[element_id]["type"] if element_id else None
     try:
-        rec["ai"] = inference.analyze(b, eid, declared)
+        rec["ai"] = inference.analyze(b, eid, declared,
+                                      claimed_complete=bool(element_id) and element_id in store.claimed_ids())
     except Exception as e:  # never 500 during the demo: store evidence, send to human review
         rec["ai"] = {"evidence_id": eid, "model_id": None, "observations": [], "final_label": None,
                      "vlm": None, "matches_declared_element": None, "requires_review": True,
@@ -252,7 +273,7 @@ def review_element(element_id: str, r: Review):
         "supported_qty": r.supported_qty if r.supported_qty is not None else (
             store.elements[element_id]["quantity"] if r.decision == "supported" else 0),
         "reason": r.reason, "reviewer": r.reviewer, "evidence_id": r.evidence_id,
-        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "timestamp": now_qatar(),
     }
     store.save()
     # Return everything the UI must refresh after one decision (the "judge moment").

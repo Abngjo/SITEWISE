@@ -9,7 +9,8 @@ Env vars:
   HF_TOKEN                   token (Space secret / local .env)
   SITEWISE_STAGE1_MODEL      default google/siglip2-base-patch16-224 (zero-shot)
   SITEWISE_FINETUNED_MODEL   e.g. CAPTAIN/team-NN-sitewise (image-classification head); overrides zero-shot
-  SITEWISE_VLM_MODEL         default Qwen/Qwen2.5-VL-7B-Instruct
+  SITEWISE_VLM_MODEL         default google/gemma-4-31B-it (verified via Inference Providers)
+  SITEWISE_VLM_FALLBACK      default Qwen/Qwen2.5-VL-72B-Instruct (used if the primary call fails)
   SITEWISE_ESCALATION_THRESHOLD  default 0.80 (calibrate on your eval set!)
   SITEWISE_VLM_COST_USD      estimated cost per escalated call, for the cost log (replace with real numbers)
   SITEWISE_DISABLE_MODELS=1  return stub predictions (for frontend/backend dev without models)
@@ -33,7 +34,8 @@ LABELS = {
 }
 STAGE1_MODEL = os.getenv("SITEWISE_STAGE1_MODEL", "google/siglip2-base-patch16-224")
 FINETUNED_MODEL = os.getenv("SITEWISE_FINETUNED_MODEL", "")
-VLM_MODEL = os.getenv("SITEWISE_VLM_MODEL", "Qwen/Qwen2.5-VL-7B-Instruct")
+VLM_MODEL = os.getenv("SITEWISE_VLM_MODEL", "google/gemma-4-31B-it")
+VLM_FALLBACK = os.getenv("SITEWISE_VLM_FALLBACK", "Qwen/Qwen2.5-VL-72B-Instruct")
 THRESHOLD = float(os.getenv("SITEWISE_ESCALATION_THRESHOLD", "0.80"))
 VLM_COST = float(os.getenv("SITEWISE_VLM_COST_USD", "0.002"))
 DISABLED = os.getenv("SITEWISE_DISABLE_MODELS") == "1"
@@ -60,10 +62,15 @@ def stage1(img: Image.Image) -> list[dict]:
     prompts = list(LABELS.values())
     res = pipe(img, candidate_labels=prompts)
     inv = {v: k for k, v in LABELS.items()}
-    return [{"label": inv[r["label"]], "score": float(r["score"])} for r in res]
+    # SigLIP scores each label independently (sigmoid), so raw scores don't sum to 1
+    # (e.g. door=0.21, others ~0). Normalise across our 4 labels so the escalation
+    # threshold means "share of belief", and keep the raw score for transparency.
+    total = sum(float(r["score"]) for r in res) or 1.0
+    return [{"label": inv[r["label"]], "score": float(r["score"]) / total,
+             "raw_score": float(r["score"])} for r in res]
 
 
-def stage2_vlm(img: Image.Image, declared_type: str | None) -> dict:
+def stage2_vlm(img: Image.Image, declared_type: str | None, claimed_complete: bool = False) -> dict:
     from huggingface_hub import InferenceClient
     buf = io.BytesIO()
     img.convert("RGB").save(buf, format="JPEG", quality=85)
@@ -73,21 +80,32 @@ def stage2_vlm(img: Image.Image, declared_type: str | None) -> dict:
         '{"label": one of ["door","wall","ceiling","other"], '
         '"completion": one of ["complete","partial","not_started","unclear"], '
         '"reason": "<one short sentence>"}. '
-        f"The contractor says this photo shows a {declared_type or 'construction element'}."
+        f"The contractor says this photo shows a {declared_type or 'construction element'}"
+        + (" and claims the work is COMPLETE (fully installed, ready to pay). Judge strictly whether the "
+           "installation visible in the photo is complete; e.g. a door frame without the door leaf is "
+           "partial, a ceiling grid without boards is partial." if claimed_complete else ".")
     )
     client = InferenceClient(token=os.getenv("HF_TOKEN"))
-    out = client.chat_completion(
-        model=VLM_MODEL,
-        messages=[{"role": "user", "content": [
-            {"type": "image_url", "image_url": {"url": url}},
-            {"type": "text", "text": prompt}]}],
-        max_tokens=150,
-    )
-    text = out.choices[0].message.content
+    msgs = [{"role": "user", "content": [
+        {"type": "image_url", "image_url": {"url": url}},
+        {"type": "text", "text": prompt}]}]
+    last_err = None
+    for model in (VLM_MODEL, VLM_FALLBACK):
+        try:
+            out = client.chat_completion(model=model, messages=msgs, max_tokens=300)
+            text = out.choices[0].message.content
+            if text:
+                break
+        except Exception as e:
+            last_err = e
+    else:
+        raise RuntimeError(f"all VLMs failed: {last_err}")
     try:
-        return json.loads(text[text.find("{"): text.rfind("}") + 1])
+        res = json.loads(text[text.find("{"): text.rfind("}") + 1])
     except Exception:
-        return {"label": "other", "completion": "unclear", "reason": text[:200]}
+        res = {"label": "other", "completion": "unclear", "reason": text[:200]}
+    res["model"] = model
+    return res
 
 
 _emb = None
@@ -132,19 +150,23 @@ def embed(image_bytes: bytes) -> list[float] | None:
         return None
 
 
-def analyze(image_bytes: bytes, evidence_id: str, declared_type: str | None) -> dict:
+def analyze(image_bytes: bytes, evidence_id: str, declared_type: str | None,
+            claimed_complete: bool = False) -> dict:
+    """claimed_complete=True: the contractor claims this element is finished in the current
+    certificate, so the VLM is always asked to judge completion (not just what the photo shows)."""
     import hashlib
-    key = hashlib.sha256(image_bytes).hexdigest() + f":{declared_type}"
+    key = hashlib.sha256(image_bytes).hexdigest() + f":{declared_type}:{claimed_complete}"
     if key in _CACHE:  # identical photo already analysed: reuse result, zero cost
         hit = {**_CACHE[key], "evidence_id": evidence_id, "est_cost_usd": 0.0, "cache_hit": True}
         COST_LOG.append({"evidence_id": evidence_id, "stage": "cache", "latency_s": 0.0, "est_cost_usd": 0.0})
         return hit
-    res = _analyze(image_bytes, evidence_id, declared_type)
+    res = _analyze(image_bytes, evidence_id, declared_type, claimed_complete)
     _CACHE[key] = res
     return res
 
 
-def _analyze(image_bytes: bytes, evidence_id: str, declared_type: str | None) -> dict:
+def _analyze(image_bytes: bytes, evidence_id: str, declared_type: str | None,
+             claimed_complete: bool = False) -> dict:
     t0 = time.time()
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     img.thumbnail((768, 768))  # cost/latency: no need for full resolution
@@ -161,13 +183,17 @@ def _analyze(image_bytes: bytes, evidence_id: str, declared_type: str | None) ->
             stage1_error = str(e)
         top = max(obs, key=lambda o: o["score"])
         mismatch = declared_type is not None and top["label"] != declared_type
-        escalate = top["score"] < THRESHOLD or mismatch
-        result = {"stage": "stage1", "observations": obs, "escalated": escalate, "vlm": None}
+        escalate = top["score"] < THRESHOLD or mismatch or claimed_complete
+        reason = ("completion_check" if claimed_complete else
+                  "label_mismatch" if mismatch else
+                  "low_confidence" if top["score"] < THRESHOLD else None)
+        result = {"stage": "stage1", "observations": obs, "escalated": escalate, "vlm": None,
+                  "escalation_reason": reason}
         if stage1_error:
             result["stage1_error"] = stage1_error
         if escalate:
             try:
-                result["vlm"] = stage2_vlm(img, declared_type)
+                result["vlm"] = stage2_vlm(img, declared_type, claimed_complete)
                 result["stage"] = "stage2"
             except Exception as e:
                 result["vlm_error"] = str(e)
@@ -181,11 +207,17 @@ def _analyze(image_bytes: bytes, evidence_id: str, declared_type: str | None) ->
     return {
         "evidence_id": evidence_id,
         "model_id": FINETUNED_MODEL or STAGE1_MODEL,
-        "escalation_model_id": VLM_MODEL if result.get("stage") == "stage2" else None,
+        "escalation_model_id": (result.get("vlm") or {}).get("model") if result.get("stage") == "stage2" else None,
         "observations": result["observations"],
         "final_label": final_label,
         "vlm": result.get("vlm"),
         "matches_declared_element": (declared_type is None) or final_label == declared_type,
+        "claimed_complete": claimed_complete,
+        "escalation_reason": result.get("escalation_reason"),
+        "vlm_error": result.get("vlm_error"),        # set if escalation was needed but the VLM call failed
+        "stage1_error": result.get("stage1_error"),
+        # complete | partial | not_started | unclear | None (no VLM call)
+        "completion": (result.get("vlm") or {}).get("completion"),
         "requires_review": True,          # every observation goes to a human
         "completion_certified": False,    # deliberate: AI never certifies
         "latency_s": latency,

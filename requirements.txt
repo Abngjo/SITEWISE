@@ -9,3 +9,5 @@ huggingface_hub>=0.30
 transformers>=4.49
 sentencepiece
 protobuf
+python-dotenv
+tzdata
