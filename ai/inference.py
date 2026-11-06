@@ -90,7 +90,61 @@ def stage2_vlm(img: Image.Image, declared_type: str | None) -> dict:
         return {"label": "other", "completion": "unclear", "reason": text[:200]}
 
 
+_emb = None
+_CACHE: dict[str, dict] = {}
+
+
+def warm_up() -> dict:
+    """Load models once at startup so the first demo upload isn't slow."""
+    if DISABLED:
+        return {"warm": False, "reason": "SITEWISE_DISABLE_MODELS=1"}
+    t0 = time.time()
+    try:
+        _stage1_pipe()
+        stage1(Image.new("RGB", (224, 224), (128, 128, 128)))
+        _embedder()
+        return {"warm": True, "seconds": round(time.time() - t0, 1)}
+    except Exception as e:
+        return {"warm": False, "error": str(e)}
+
+
+def _embedder():
+    global _emb
+    if _emb is None:
+        from transformers import AutoModel, AutoProcessor
+        _emb = (AutoModel.from_pretrained(STAGE1_MODEL).eval(), AutoProcessor.from_pretrained(STAGE1_MODEL))
+    return _emb
+
+
+def embed(image_bytes: bytes) -> list[float] | None:
+    """L2-normalised SigLIP2 image embedding for near-duplicate checks. None if unavailable."""
+    if DISABLED:
+        return None
+    try:
+        import torch
+        model, proc = _embedder()
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        with torch.no_grad():
+            f = model.get_image_features(**proc(images=img, return_tensors="pt"))
+        f = f / f.norm(dim=-1, keepdim=True)
+        return [round(float(x), 5) for x in f[0]]
+    except Exception:
+        return None
+
+
 def analyze(image_bytes: bytes, evidence_id: str, declared_type: str | None) -> dict:
+    import hashlib
+    key = hashlib.sha256(image_bytes).hexdigest() + f":{declared_type}"
+    if key in _CACHE:  # identical photo already analysed: reuse result, zero cost
+        hit = {**_CACHE[key], "evidence_id": evidence_id, "est_cost_usd": 0.0, "cache_hit": True}
+        COST_LOG.append({"evidence_id": evidence_id, "stage": "cache", "latency_s": 0.0, "est_cost_usd": 0.0})
+        return hit
+    res = _analyze(image_bytes, evidence_id, declared_type)
+    _CACHE[key] = res
+    return res
+
+
+def _analyze(image_bytes: bytes, evidence_id: str, declared_type: str | None) -> dict:
     t0 = time.time()
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     img.thumbnail((768, 768))  # cost/latency: no need for full resolution
@@ -149,5 +203,6 @@ def cost_summary() -> dict:
         "avg_latency_s": round(sum(c["latency_s"] for c in COST_LOG) / n, 3) if n else 0.0,
         "est_total_cost_usd": round(total, 4),
         "est_cost_if_always_vlm_usd": round(n * VLM_COST, 4),
+        "cache_hits": sum(1 for c in COST_LOG if c["stage"] == "cache"),
         "log": COST_LOG[-50:],
     }

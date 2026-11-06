@@ -129,3 +129,32 @@ def test_ai_never_certifies_and_missing_time_flagged():
     assert r["ai"]["requires_review"] is True
     assert any(f["type"] == "timestamp_anomaly" for f in r["flags"])
     assert client.get("/api/model/status").json()["C-102"] == "uncertain"
+
+
+# ---------------- C6/C7 additions ----------------
+def test_overview_one_call():
+    o = client.get("/api/overview").json()
+    assert o["totals"]["discrepancy"] == 98520
+    assert o["counts"]["elements"]["discrepancy"] > 0
+    assert "forecast_handover" in o
+
+
+def test_ai_failure_is_graceful(monkeypatch):
+    from ai import inference
+
+    def boom(*a, **k):
+        raise RuntimeError("provider down")
+    monkeypatch.setattr(inference, "analyze", boom)
+    r = client.post("/api/evidence", files={"file": ("f.jpg", _img((200, 10, 10)), "image/jpeg")},
+                    data={"element_id": "D-104"})
+    assert r.status_code == 200
+    assert r.json()["ai"]["requires_review"] is True
+    assert "AI unavailable" in r.json()["ai"]["error"]
+
+
+def test_identical_photo_uses_cache():
+    img = _img((30, 160, 90))
+    client.post("/api/evidence", files={"file": ("a.jpg", img, "image/jpeg")}, data={"element_id": "W-203"})
+    r2 = client.post("/api/evidence", files={"file": ("b.jpg", img, "image/jpeg")}, data={"element_id": "W-203"}).json()
+    assert r2["ai"].get("cache_hit") is True
+    assert client.get("/api/ai/costs").json()["cache_hits"] >= 1

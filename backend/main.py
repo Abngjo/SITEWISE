@@ -50,11 +50,21 @@ def _index_prior_photos():
             store.evidence[eid] = {
                 "evidence_id": eid, "certificate_no": cert_dir.name, "filename": f.name,
                 "path": str(f), "sha256": duplicates.sha256_bytes(b), "phash": duplicates.phash_bytes(b),
-                "element_id": None, "prior": True,
+                "element_id": None, "prior": True, "embedding": inference.embed(b),
             }
 
 
 _index_prior_photos()
+WARMUP: dict = {}
+
+
+@app.on_event("startup")
+def _warm():
+    """Load models once at boot; the first demo upload must not pay the load time."""
+    WARMUP.update(inference.warm_up())
+    for v in store.evidence.values():  # embeddings for prior photos once models are available
+        if v.get("prior") and not v.get("embedding") and Path(v["path"]).exists():
+            v["embedding"] = inference.embed(Path(v["path"]).read_bytes())
 
 
 def _exif_time(b: bytes) -> str | None:
@@ -71,7 +81,7 @@ def _exif_time(b: bytes) -> str | None:
 # ------------------------------- read endpoints -------------------------------
 @app.get("/api/health")
 def health():
-    return {"ok": True, "project_id": store.project["project_id"]}
+    return {"ok": True, "project_id": store.project["project_id"], "models": WARMUP}
 
 
 @app.get("/api/project")
@@ -99,7 +109,8 @@ def get_boq():
 
 @app.get("/api/evidence")
 def list_evidence():
-    return [v for v in store.evidence.values() if not v.get("prior")]
+    return [{k: v for k, v in e.items() if k != "embedding"}
+            for e in store.evidence.values() if not e.get("prior")]
 
 
 @app.get("/api/evidence/{evidence_id}/image")
@@ -122,6 +133,30 @@ def schedule_forecast(delay_task: str | None = None, delay_days: float = 0):
     return schedule.forecast(store.tasks, date.fromisoformat(store.project["start_date"]),
                              date.fromisoformat(store.project["as_of_date"]),
                              store.task_progress(), extra)
+
+
+@app.get("/api/overview")
+def overview():
+    """One call for the dashboard landing page."""
+    a, sc = payments_audit(), schedule_forecast()
+    ev = [e for e in store.evidence.values() if not e.get("prior")]
+    statuses = model_status()
+    return {
+        "project": store.project,
+        "totals": a["totals"],
+        "certificate_no": a["certificate_no"],
+        "baseline_handover": sc["baseline_handover"],
+        "forecast_handover": sc["forecast_handover"],
+        "handover_delay_days": sc["handover_delay_days"],
+        "counts": {
+            "photos_this_certificate": len(ev),
+            "possible_reuse": sum(1 for e in ev if e.get("duplicates")),
+            "flags_awaiting_review": len(store.safety),
+            "elements": {k: list(statuses.values()).count(k)
+                         for k in ("supported", "uncertain", "discrepancy", "no_evidence")},
+        },
+        "ai": {k: v for k, v in inference.cost_summary().items() if k != "log"},
+    }
 
 
 @app.get("/api/safety")
@@ -169,11 +204,18 @@ async def upload_evidence(
         "capture_time": capture_time, "time_source": time_source,
         "upload_time": datetime.now().isoformat(timespec="seconds"), "uploader": uploader,
         "sha256": duplicates.sha256_bytes(b), "phash": duplicates.phash_bytes(b),
+        "embedding": inference.embed(b),
     }
     rec["duplicates"] = duplicates.find_duplicates(rec, list(store.evidence.values()))
 
     declared = store.elements[element_id]["type"] if element_id else None
-    rec["ai"] = inference.analyze(b, eid, declared)
+    try:
+        rec["ai"] = inference.analyze(b, eid, declared)
+    except Exception as e:  # never 500 during the demo: store evidence, send to human review
+        rec["ai"] = {"evidence_id": eid, "model_id": None, "observations": [], "final_label": None,
+                     "vlm": None, "matches_declared_element": None, "requires_review": True,
+                     "completion_certified": False, "error": f"AI unavailable: {e}",
+                     "latency_s": 0.0, "est_cost_usd": 0.0}
 
     flags = []
     if element_id:
@@ -188,7 +230,7 @@ async def upload_evidence(
 
     store.evidence[eid] = rec
     store.save()
-    return rec
+    return {k: v for k, v in rec.items() if k != "embedding"}
 
 
 class Review(BaseModel):
@@ -225,6 +267,7 @@ def reset_demo():
     if STATE_FILE.exists():
         STATE_FILE.unlink()
     inference.COST_LOG.clear()
+    inference._CACHE.clear()
     store.reset()
     _index_prior_photos()
     return {"ok": True}
