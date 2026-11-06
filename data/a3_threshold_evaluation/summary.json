@@ -1,0 +1,258 @@
+{
+  "dataset": "37 filename-labeled development photos in data/uploads",
+  "held_out_test_split_used": false,
+  "score_type": "normalized SigLIP2 class share",
+  "model": "google/siglip2-base-patch16-224",
+  "photos": 37,
+  "accuracy": 0.918918918918919,
+  "macro_f1": 0.920843776106934,
+  "gemma_cost_per_escalation_usd": 8.4066875e-05,
+  "cost_source": "A7 mean from measured tokens; calculated_from_provider_tokens",
+  "current_gemma_responses_for_development_photos": 0,
+  "results": [
+    {
+      "threshold": 0.5,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 3,
+      "escalation_pct": 8.108108108108109,
+      "low_confidence_only": [],
+      "declared_mismatch_only": [
+        "other (9).jpg",
+        "wall (2).jpg",
+        "wall.jpg"
+      ],
+      "low_confidence_and_mismatch": [],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 6.816233108108108e-06
+    },
+    {
+      "threshold": 0.55,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 3,
+      "escalation_pct": 8.108108108108109,
+      "low_confidence_only": [],
+      "declared_mismatch_only": [
+        "other (9).jpg",
+        "wall.jpg"
+      ],
+      "low_confidence_and_mismatch": [
+        "wall (2).jpg"
+      ],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 6.816233108108108e-06
+    },
+    {
+      "threshold": 0.6,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 3,
+      "escalation_pct": 8.108108108108109,
+      "low_confidence_only": [],
+      "declared_mismatch_only": [
+        "other (9).jpg",
+        "wall.jpg"
+      ],
+      "low_confidence_and_mismatch": [
+        "wall (2).jpg"
+      ],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 6.816233108108108e-06
+    },
+    {
+      "threshold": 0.65,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 6,
+      "escalation_pct": 16.216216216216218,
+      "low_confidence_only": [
+        "ceiling.jpg",
+        "wall (8).jpg",
+        "wall (9).jpg"
+      ],
+      "declared_mismatch_only": [
+        "other (9).jpg",
+        "wall.jpg"
+      ],
+      "low_confidence_and_mismatch": [
+        "wall (2).jpg"
+      ],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 1.3632466216216216e-05
+    },
+    {
+      "threshold": 0.7,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 6,
+      "escalation_pct": 16.216216216216218,
+      "low_confidence_only": [
+        "ceiling.jpg",
+        "wall (8).jpg",
+        "wall (9).jpg"
+      ],
+      "declared_mismatch_only": [
+        "other (9).jpg",
+        "wall.jpg"
+      ],
+      "low_confidence_and_mismatch": [
+        "wall (2).jpg"
+      ],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 1.3632466216216216e-05
+    },
+    {
+      "threshold": 0.75,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 7,
+      "escalation_pct": 18.91891891891892,
+      "low_confidence_only": [
+        "ceiling.jpg",
+        "wall (5).jpg",
+        "wall (8).jpg",
+        "wall (9).jpg"
+      ],
+      "declared_mismatch_only": [
+        "wall.jpg"
+      ],
+      "low_confidence_and_mismatch": [
+        "other (9).jpg",
+        "wall (2).jpg"
+      ],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 1.590454391891892e-05
+    },
+    {
+      "threshold": 0.8,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 10,
+      "escalation_pct": 27.027027027027028,
+      "low_confidence_only": [
+        "ceiling.jpg",
+        "wall (3).jpg",
+        "wall (5).jpg",
+        "wall (6).jpg",
+        "wall (7).jpg",
+        "wall (8).jpg",
+        "wall (9).jpg"
+      ],
+      "declared_mismatch_only": [],
+      "low_confidence_and_mismatch": [
+        "other (9).jpg",
+        "wall (2).jpg",
+        "wall.jpg"
+      ],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 2.272077702702703e-05
+    },
+    {
+      "threshold": 0.85,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 11,
+      "escalation_pct": 29.72972972972973,
+      "low_confidence_only": [
+        "ceiling.jpg",
+        "wall (3).jpg",
+        "wall (4).jpg",
+        "wall (5).jpg",
+        "wall (6).jpg",
+        "wall (7).jpg",
+        "wall (8).jpg",
+        "wall (9).jpg"
+      ],
+      "declared_mismatch_only": [],
+      "low_confidence_and_mismatch": [
+        "other (9).jpg",
+        "wall (2).jpg",
+        "wall.jpg"
+      ],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 2.4992854729729733e-05
+    },
+    {
+      "threshold": 0.9,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 14,
+      "escalation_pct": 37.83783783783784,
+      "low_confidence_only": [
+        "ceiling (1).jpg",
+        "ceiling.jpg",
+        "door (6).jpg",
+        "wall (1).jpg",
+        "wall (3).jpg",
+        "wall (4).jpg",
+        "wall (5).jpg",
+        "wall (6).jpg",
+        "wall (7).jpg",
+        "wall (8).jpg",
+        "wall (9).jpg"
+      ],
+      "declared_mismatch_only": [],
+      "low_confidence_and_mismatch": [
+        "other (9).jpg",
+        "wall (2).jpg",
+        "wall.jpg"
+      ],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 3.180908783783784e-05
+    },
+    {
+      "threshold": 0.95,
+      "siglip_accuracy": 0.918918918918919,
+      "siglip_macro_f1": 0.920843776106934,
+      "measured_cascade_accuracy": null,
+      "measured_cascade_macro_f1": null,
+      "escalated": 19,
+      "escalation_pct": 51.351351351351354,
+      "low_confidence_only": [
+        "ceiling (1).jpg",
+        "ceiling (3).jpg",
+        "ceiling (4).jpg",
+        "ceiling (5).jpg",
+        "ceiling (7).jpg",
+        "ceiling.jpg",
+        "door (6).jpg",
+        "other (6).jpg",
+        "wall (1).jpg",
+        "wall (3).jpg",
+        "wall (4).jpg",
+        "wall (5).jpg",
+        "wall (6).jpg",
+        "wall (7).jpg",
+        "wall (8).jpg",
+        "wall (9).jpg"
+      ],
+      "declared_mismatch_only": [],
+      "low_confidence_and_mismatch": [
+        "other (9).jpg",
+        "wall (2).jpg",
+        "wall.jpg"
+      ],
+      "incorrect_avoids_escalation": [],
+      "estimated_provider_cost_per_photo_usd": 4.3169476351351355e-05
+    }
+  ]
+}

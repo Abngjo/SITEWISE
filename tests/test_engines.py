@@ -6,6 +6,8 @@ import os
 from datetime import date
 
 os.environ["SITEWISE_DISABLE_MODELS"] = "1"
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["SITEWISE_STATE_FILE"] = "/tmp/sitewise_test_state.json"
 
 from fastapi.testclient import TestClient  # noqa: E402

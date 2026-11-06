@@ -1,0 +1,74 @@
+{
+  "validation_policy": "single frozen validation; do not retune from held-out results",
+  "dataset": "mfjbrr/team-QH045-sitewise-photos",
+  "split": "test",
+  "n": 32,
+  "candidate_frozen_before_validation": 0.6,
+  "production_comparison": 0.8,
+  "routing_rule": "normalized_score < threshold OR prediction != declared_category",
+  "artifact_sha256": {
+    "local_predictions.csv": "d777bf93fdb80094e919e87abb592079fa46ebb98ee87e637ed318675f21a4a5",
+    "provider_calls.csv": "17270a0aca546e619d9faeb40c45e5437b8ff920522988faa02436d597e25b5f",
+    "a7_summary.json": "d3a4f68f483fbd7b82216e3b398c6871b3af5311c7e897ca5d965b70cfe06097"
+  },
+  "measurement_notes": {
+    "predictions": "measured, previously saved real SigLIP2 and Gemma outputs",
+    "latency": "measured per-call latency, recombined according to each threshold route",
+    "cost": "token-based estimates; provider-confirmed billing unavailable"
+  },
+  "recommendation": {
+    "safe_when_declared_category_present": true,
+    "safe_for_optional_category_uploads": false,
+    "reason": "The only zero-shot error scores 0.776226 and is caught at 0.60 solely by the declared-category mismatch rule; element_id is optional in the current upload API."
+  },
+  "results": [
+    {
+      "setup": "candidate_0.60",
+      "threshold": 0.6,
+      "n": 32,
+      "routed_accuracy": 1.0,
+      "routed_macro_f1": 1.0,
+      "escalated": 3,
+      "escalation_pct": 9.375,
+      "low_confidence_only": [
+        "test/wall/wall_004.jpg",
+        "test/wall/wall_005.jpg"
+      ],
+      "declared_mismatch_only": [
+        "test/ceiling/ceiling_004.jpg"
+      ],
+      "both_reasons": [],
+      "incorrect_not_escalated": [],
+      "avg_routed_latency_s": 0.2996760093751618,
+      "total_prompt_tokens": 632,
+      "total_completion_tokens": 106,
+      "estimated_total_cost_usd": 0.00025120000000000003,
+      "estimated_cost_per_photo_usd": 7.850000000000001e-06
+    },
+    {
+      "setup": "production_0.80",
+      "threshold": 0.8,
+      "n": 32,
+      "routed_accuracy": 1.0,
+      "routed_macro_f1": 1.0,
+      "escalated": 5,
+      "escalation_pct": 15.625,
+      "low_confidence_only": [
+        "test/ceiling/ceiling_006.jpg",
+        "test/ceiling/ceiling_007.jpg",
+        "test/wall/wall_004.jpg",
+        "test/wall/wall_005.jpg"
+      ],
+      "declared_mismatch_only": [],
+      "both_reasons": [
+        "test/ceiling/ceiling_004.jpg"
+      ],
+      "incorrect_not_escalated": [],
+      "avg_routed_latency_s": 0.4175822437500756,
+      "total_prompt_tokens": 1042,
+      "total_completion_tokens": 174,
+      "estimated_total_cost_usd": 0.00041358,
+      "estimated_cost_per_photo_usd": 1.2924375e-05
+    }
+  ]
+}

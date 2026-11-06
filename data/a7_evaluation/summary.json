@@ -1,0 +1,63 @@
+{
+  "dataset": "mfjbrr/team-QH045-sitewise-photos",
+  "split": "test",
+  "n": 32,
+  "threshold": 0.8,
+  "threshold_tuned_on_test": false,
+  "zero_shot_model": "google/siglip2-base-patch16-224",
+  "finetuned_model": "mfjbrr/team-QH045-sitewise",
+  "gemma_model": "google/gemma-4-31B-it",
+  "fallback_model": "Qwen/Qwen2.5-VL-72B-Instruct",
+  "gemma_token_rates_usd_per_million": {
+    "input": 0.27,
+    "output": 0.76
+  },
+  "gemma_cost_per_call_fallback": 0.000498,
+  "qwen_cost_per_call_fallback": 0.001313,
+  "summary": [
+    {
+      "setup": "siglip2_zero_shot",
+      "n": 32,
+      "evaluated": 32,
+      "accuracy": 0.96875,
+      "macro_f1": 0.9686274509803923,
+      "avg_latency_s": 0.024275256250120947,
+      "estimated_cost_per_photo_usd": 0.0,
+      "escalation_pct": 0.0,
+      "errors": 0
+    },
+    {
+      "setup": "siglip2_finetuned",
+      "n": 32,
+      "evaluated": 32,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "avg_latency_s": 0.013777415625213507,
+      "estimated_cost_per_photo_usd": 0.0,
+      "escalation_pct": 0.0,
+      "errors": 0
+    },
+    {
+      "setup": "gemma_every_photo",
+      "n": 32,
+      "evaluated": 32,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "avg_latency_s": 3.2773834468745235,
+      "estimated_cost_per_photo_usd": 8.4066875e-05,
+      "escalation_pct": 100.0,
+      "errors": 0
+    },
+    {
+      "setup": "sitewise_cascade",
+      "n": 32,
+      "evaluated": 32,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "avg_latency_s": 0.4175822437500756,
+      "estimated_cost_per_photo_usd": 1.2924375e-05,
+      "escalation_pct": 15.625,
+      "errors": 0
+    }
+  ]
+}
