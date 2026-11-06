@@ -1,7 +1,7 @@
 ---
 license: other
 license_name: mixed-see-sources-csv
-license_link: sources.csv
+license_link: https://huggingface.co/datasets/mfjbrr/team-QH045-sitewise-photos/blob/main/sources.csv
 task_categories:
   - image-classification
 tags:
