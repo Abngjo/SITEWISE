@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SITEWISE - Site photo</title>
+<style>
+ body{font-family:system-ui,sans-serif;background:#0b1720;color:#eef4f8;margin:0;padding:20px;max-width:480px}
+ h1{font-size:22px;margin:0 0 4px} p{color:#a9bdcc;font-size:14px}
+ label{display:block;margin:16px 0 6px;font-weight:600}
+ select,input,button{width:100%;font-size:17px;padding:12px;border-radius:10px;border:1px solid #2b4456;background:#11212e;color:#eef4f8;box-sizing:border-box}
+ button{background:#ff6257;color:#2a0b08;font-weight:700;border:none;margin-top:18px}
+ #out{margin-top:18px;white-space:pre-wrap;font-size:13px;background:#11212e;padding:12px;border-radius:10px}
+ .tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;margin:2px;background:#163449}
+</style></head><body>
+<h1>SITEWISE site photo</h1>
+<p>Sample data. The capture time is recorded by this page, not taken from file metadata.</p>
+<label>Element</label><select id="el"></select>
+<label>Photo</label><input id="ph" type="file" accept="image/*" capture="environment">
+<button id="go">Submit evidence</button>
+<div id="out"></div>
+<script>
+const el=document.getElementById('el'),out=document.getElementById('out');
+fetch('/api/elements').then(r=>r.json()).then(es=>{
+  es.forEach(e=>{const o=document.createElement('option');o.value=e.element_id;
+  o.textContent=`${e.element_id} - ${e.name}`;el.appendChild(o)})});
+document.getElementById('go').onclick=async()=>{
+  const f=document.getElementById('ph').files[0]; if(!f){out.textContent='Pick a photo first';return}
+  const fd=new FormData(); fd.append('file',f); fd.append('element_id',el.value);
+  const now=new Date(); const local=new Date(now-now.getTimezoneOffset()*6e4).toISOString().slice(0,19);
+  fd.append('capture_time',local); fd.append('time_source','in_app_capture'); fd.append('uploader','mobile');
+  out.textContent='Analyzing with Hugging Face models...';
+  try{const r=await fetch('/api/evidence',{method:'POST',body:fd}); const j=await r.json();
+    if(!r.ok){out.textContent='Error: '+JSON.stringify(j);return}
+    const a=j.ai||{}; let s=`Evidence ${j.evidence_id}\nAI sees: ${a.final_label} (stage: ${a.escalation_model_id?'escalated to VLM':'small model'})\n`;
+    if(a.vlm&&a.vlm.reason) s+=`Reason: ${a.vlm.reason}\n`;
+    s+=`Matches declared element: ${a.matches_declared_element}\n`;
+    if(j.duplicates&&j.duplicates.length) s+=`⚠ Possible reuse of ${j.duplicates[0].evidence_id} (${j.duplicates[0].kind})\n`;
+    (j.flags||[]).forEach(f=>s+=`⚠ ${f.message}\n`);
+    s+='\nSent to engineer for review. AI does not certify work.'; out.textContent=s;
+  }catch(e){out.textContent='Upload failed: '+e}
+};
+</script></body></html>

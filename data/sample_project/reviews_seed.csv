@@ -1,0 +1,13 @@
+element_id,decision,supported_qty,reason,reviewer,timestamp
+S-101,supported,180,Certified in IPC-02,QS (sample),2026-08-30T10:00:00
+S-201,supported,180,Certified in IPC-03,QS (sample),2026-09-30T10:00:00
+W-101,supported,62,Certified in IPC-03,QS (sample),2026-09-30T10:00:00
+W-102,supported,62,Certified in IPC-03,QS (sample),2026-09-30T10:00:00
+W-103,supported,48,Certified in IPC-03,QS (sample),2026-09-30T10:00:00
+W-104,supported,48,Certified in IPC-03,QS (sample),2026-09-30T10:00:00
+W-201,supported,62,Site inspection photos accepted,Site engineer (sample),2026-11-02T09:00:00
+W-202,supported,62,Site inspection photos accepted,Site engineer (sample),2026-11-02T09:00:00
+D-101,supported,1,Installed set visible with ironmongery,Site engineer (sample),2026-11-02T09:30:00
+D-102,supported,1,Installed set visible with ironmongery,Site engineer (sample),2026-11-02T09:30:00
+D-103,uncertain,0,Frame visible; door leaf not confirmed,Site engineer (sample),2026-11-02T09:35:00
+C-101,uncertain,0,Grid visible; boards not confirmed,Site engineer (sample),2026-11-02T09:40:00

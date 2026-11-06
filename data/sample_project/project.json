@@ -1,0 +1,15 @@
+{
+  "project_id": "PRJ-001",
+  "name": "Al Wakra Community Clinic - Package B (SAMPLE DATA)",
+  "name_ar": "مركز الوكرة الصحي المجتمعي - الحزمة ب (بيانات تجريبية)",
+  "location": "Al Wakra, Qatar",
+  "contractor": "Gulf Example Contracting W.L.L. (fictional)",
+  "currency": "QAR",
+  "contract_value": 1800000,
+  "start_date": "2026-07-01",
+  "as_of_date": "2026-11-07",
+  "current_certificate": "IPC-04",
+  "retention_pct": 10,
+  "work_week": "SAT-THU",
+  "sample_data_notice": "All project, contractor, quantity and rate data is fictional sample data for demonstration only."
+}

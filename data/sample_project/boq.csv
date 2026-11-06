@@ -1,0 +1,5 @@
+item_id,description,description_ar,unit,contract_rate,measurement_rule
+BOQ-ST-01,Reinforced concrete slab incl. rebar and formwork,بلاطة خرسانة مسلحة شاملة حديد التسليح والقوالب,m3,1450,Net volume per approved drawings
+BOQ-BW-01,200mm concrete blockwork wall,جدار طابوق خرساني 200 مم,m2,95,Net area; openings over 0.5 m2 deducted
+BOQ-DR-01,Fire-rated single door set incl. frame and ironmongery,طقم باب مقاوم للحريق شامل الإطار والإكسسوارات,nr,6500,Per complete installed set
+BOQ-CL-01,Suspended gypsum board ceiling,سقف معلق من ألواح الجبس,m2,140,Net area measured on plan

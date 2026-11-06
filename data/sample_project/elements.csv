@@ -1,0 +1,23 @@
+element_id,ifc_guid,ifc_class,type,name,name_ar,floor,zone,quantity,unit,boq_item_id,task_id,calendar
+S-101,2QtyOZUyDIyBVeCsSNRief,IfcSlab,slab,Level 1 slab,بلاطة الطابق الأول,L1,A+B,180,m3,BOQ-ST-01,T-100,outdoor
+S-201,2adcF05xzP$Pn$3vUajOhk,IfcSlab,slab,Level 2 slab,بلاطة الطابق الثاني,L2,A+B,180,m3,BOQ-ST-01,T-200,outdoor
+W-101,3baucLcHzJ9fvnVDdmXprl,IfcWall,wall,L1 north wall,جدار شمالي - الطابق الأول,L1,A,62,m2,BOQ-BW-01,T-110,indoor
+W-102,2VT5KV1EPLXf5QNEvly9tS,IfcWall,wall,L1 south wall,جدار جنوبي - الطابق الأول,L1,B,62,m2,BOQ-BW-01,T-110,indoor
+W-103,2XODDJhU5PTR354UnZrp3i,IfcWall,wall,L1 west wall,جدار غربي - الطابق الأول,L1,A,48,m2,BOQ-BW-01,T-110,indoor
+W-104,0FjrmsRFHQkfZJsAOuN$PH,IfcWall,wall,L1 east wall,جدار شرقي - الطابق الأول,L1,B,48,m2,BOQ-BW-01,T-110,indoor
+W-201,1S51bVhcvJE9qthni29FUs,IfcWall,wall,L2 north wall,جدار شمالي - الطابق الثاني,L2,A,62,m2,BOQ-BW-01,T-210,indoor
+W-202,2iAOQKehTHcABpBupCNAzE,IfcWall,wall,L2 south wall,جدار جنوبي - الطابق الثاني,L2,B,62,m2,BOQ-BW-01,T-210,indoor
+W-203,3D00r$6unMFQJzwAcTmmd7,IfcWall,wall,L2 west wall,جدار غربي - الطابق الثاني,L2,A,48,m2,BOQ-BW-01,T-210,indoor
+W-204,2vfow4ypzOEgCztwQuNyPW,IfcWall,wall,L2 east wall,جدار شرقي - الطابق الثاني,L2,B,48,m2,BOQ-BW-01,T-210,indoor
+D-101,3Z$Ai1Jy1Lyg0WPbWk_5VI,IfcDoor,door,L1 consult room 1 door,باب غرفة الكشف 1,L1,A,1,nr,BOQ-DR-01,T-120,indoor
+D-102,0KtNftmXLGjPAXJVe$OTmh,IfcDoor,door,L1 consult room 2 door,باب غرفة الكشف 2,L1,A,1,nr,BOQ-DR-01,T-120,indoor
+D-103,0mEFF2d2bQCgZ24EcP6JfC,IfcDoor,door,L1 treatment room door,باب غرفة العلاج,L1,B,1,nr,BOQ-DR-01,T-120,indoor
+D-104,3dDdi6kojJNg1lOKnm4jmY,IfcDoor,door,L1 store door,باب المخزن,L1,B,1,nr,BOQ-DR-01,T-120,indoor
+D-201,3erWd3l7jKqQhIjDRLVRR1,IfcDoor,door,L2 office 1 door,باب المكتب 1,L2,A,1,nr,BOQ-DR-01,T-220,indoor
+D-202,1$lGV8g3HNjeTqpIxyuFX4,IfcDoor,door,L2 office 2 door,باب المكتب 2,L2,A,1,nr,BOQ-DR-01,T-220,indoor
+D-203,25$QtebjLNavN$7hkYFDBS,IfcDoor,door,L2 meeting room door,باب غرفة الاجتماعات,L2,B,1,nr,BOQ-DR-01,T-220,indoor
+D-204,3f2kEjlL9K9RnqrjBASrGE,IfcDoor,door,L2 staff room door,باب غرفة الموظفين,L2,B,1,nr,BOQ-DR-01,T-220,indoor
+C-101,3_Vrxx8IPI9RCabNW7xVjR,IfcCovering,ceiling,L1 zone A ceiling,سقف معلق - الطابق الأول أ,L1,A,180,m2,BOQ-CL-01,T-130,indoor
+C-102,298xWyj3HROAPnxvuPOymy,IfcCovering,ceiling,L1 zone B ceiling,سقف معلق - الطابق الأول ب,L1,B,180,m2,BOQ-CL-01,T-130,indoor
+C-201,0OCd1qtZXGiBVUFOKUy4QI,IfcCovering,ceiling,L2 zone A ceiling,سقف معلق - الطابق الثاني أ,L2,A,180,m2,BOQ-CL-01,T-230,indoor
+C-202,0tC4qZIXbI0hU3Cz2CBfHS,IfcCovering,ceiling,L2 zone B ceiling,سقف معلق - الطابق الثاني ب,L2,B,180,m2,BOQ-CL-01,T-230,indoor

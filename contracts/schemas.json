@@ -1,0 +1,34 @@
+{
+  "_note": "FROZEN after the 3 PM sync. Change only with whole-team agreement. Shapes match backend/main.py responses.",
+  "element_status_values": ["supported", "uncertain", "discrepancy", "no_evidence"],
+  "status_colors": {"supported": "#2ECC71", "uncertain": "#F1C40F", "discrepancy": "#E74C3C", "no_evidence": "#9AA5AE"},
+  "review_decisions": ["supported", "partial", "uncertain", "rejected"],
+  "visual_labels": ["door", "wall", "ceiling", "other"],
+  "Element": {
+    "element_id": "D-103", "ifc_guid": "string", "ifc_class": "IfcDoor", "type": "door|wall|ceiling|slab",
+    "name": "string", "name_ar": "string", "floor": "L1|L2", "zone": "A|B|A+B",
+    "quantity": "number-as-string", "unit": "nr|m2|m3", "boq_item_id": "BOQ-DR-01", "task_id": "T-120",
+    "calendar": "indoor|outdoor", "status": "supported|uncertain|discrepancy|no_evidence",
+    "review": "Review|null", "evidence_ids": ["PHOTO-XXXX"]
+  },
+  "Review": {
+    "element_id": "D-103", "decision": "supported|partial|uncertain|rejected", "supported_qty": 1,
+    "reason": "string", "reviewer": "string", "evidence_id": "PHOTO-XXXX|null", "timestamp": "ISO8601"
+  },
+  "Evidence": {
+    "evidence_id": "PHOTO-XXXX", "certificate_no": "IPC-04", "filename": "string", "element_id": "D-103|null",
+    "capture_time": "ISO8601|null", "time_source": "in_app_capture|exif|manual|missing",
+    "upload_time": "ISO8601", "uploader": "string", "sha256": "hex", "phash": "hex",
+    "duplicates": [{"evidence_id": "PRIOR-IPC-03-door1", "certificate_no": "IPC-03", "kind": "exact|near_duplicate_phash|near_duplicate_embedding", "score": 0.97}],
+    "ai": "AIResult", "flags": ["Flag"]
+  },
+  "AIResult": {
+    "evidence_id": "PHOTO-XXXX", "model_id": "string", "escalation_model_id": "string|null",
+    "observations": [{"label": "door", "score": 0.91}], "final_label": "door",
+    "vlm": {"label": "door", "completion": "complete|partial|not_started|unclear", "reason": "string"},
+    "matches_declared_element": true, "requires_review": true, "completion_certified": false,
+    "latency_s": 0.4, "est_cost_usd": 0.0
+  },
+  "Flag": {"type": "summer_working_hours|timestamp_anomaly|ppe", "severity": "review", "message": "string",
+           "evidence_id": "PHOTO-XXXX", "element_id": "W-201"}
+}

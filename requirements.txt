@@ -1,0 +1,11 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+pydantic>=2
+pillow>=10
+imagehash>=4.3
+numpy
+huggingface_hub>=0.30
+transformers>=4.49
+sentencepiece
+protobuf
