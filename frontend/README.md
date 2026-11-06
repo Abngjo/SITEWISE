@@ -1,13 +1,33 @@
 # Frontend (Dev B)
 
+Vite + React + three.js. Built (B1–B8 done).
+
 ```bash
+# terminal 1, repo root: backend with stub AI
+SITEWISE_DISABLE_MODELS=1 uvicorn backend.main:app --reload --port 7860
+# terminal 2
 cd frontend
-npm create vite@latest . -- --template react    # keep public/model.glb and mobile_upload.html
-npm install three
-npm run dev            # proxy /api to the backend: add to vite.config.js
-                       #   server: { proxy: { '/api': 'http://localhost:7860', '/model.glb': 'http://localhost:7860' } }
+npm install
+npm run dev            # http://localhost:5173  (proxies /api, /model.glb and /m to 127.0.0.1:7860)
 npm run build          # Dockerfile builds this automatically on the Space
 ```
+
+Sign-in is a prototype screen: any email and any 4+ character password.
+
+| Where | What |
+|---|---|
+| `src/api/client.js` | every call in `contracts/api.md` |
+| `src/api/adapters.js` | maps contract shapes to what the screens use (the only file to touch if a contract changes) |
+| `src/store.jsx` | shared state; `submitReview()` applies the single review response to 3D + payment + schedule |
+| `src/pages/` | Payment, Evidence, Model, Schedule, Report, Safety, Costs |
+| `src/components/` | Login (animated sign-in), Shell, DynamicIsland (Doha time + live status), ThemeSwitch (light/dark/system), Viewer3D |
+
+Notes:
+- The proxy targets `127.0.0.1`, not `localhost`: on Windows Node resolves `localhost` to IPv6 first and uvicorn listens on IPv4.
+- The UI never computes money. It only displays what the API returns.
+- UI decisions map to the contract: Approve → `supported`, Partial → `partial` + `supported_qty`, Reject → `rejected`.
+- Hidden reset before rehearsals: user menu → Reset demo state, or Shift + Alt + R.
+- The 3D viewer frames whatever `/model.glb` contains and looks from the side where D-103 sits.
 
 Pages (priority order): Payment audit → Evidence review (with side-by-side reuse) → 3D model → Schedule → Report (EN/AR, `dir="rtl"`) → Safety → AI costs.
 
