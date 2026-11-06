@@ -54,3 +54,6 @@ Regenerate the sample building: `python scripts/make_ifc.py && python scripts/if
 ## Hugging Face usage
 SigLIP2 (transformers, in-Space CPU) → fine-tuned on HF Jobs → Hub model + dataset with cards →
 Qwen2.5-VL via Inference Providers for uncertain photos only → Docker Space.
+
+- Model: [mfjbrr/team-QH045-sitewise](https://huggingface.co/mfjbrr/team-QH045-sitewise)
+- Dataset: [mfjbrr/team-QH045-sitewise-photos](https://huggingface.co/datasets/mfjbrr/team-QH045-sitewise-photos)
