@@ -1,0 +1,121 @@
+{
+  "dataset": "37 filename-labeled development photos in data/uploads",
+  "held_out_a7_used": false,
+  "provider_calls": 0,
+  "model": "google/siglip2-base-patch16-224",
+  "pipeline_kind": "zs",
+  "device": "cuda:0",
+  "repeats": 3,
+  "preprocessing": "RGB then thumbnail((768, 768))",
+  "label_order": [
+    "door",
+    "wall",
+    "ceiling",
+    "other"
+  ],
+  "normalized_scoring": true,
+  "prompts": {
+    "captain_current": {
+      "door": "a photo of an installed interior door in a building under construction",
+      "wall": "a photo of a concrete blockwork wall under construction",
+      "ceiling": "a photo of a suspended ceiling being installed",
+      "other": "a photo of a construction site with no door, wall or ceiling work visible"
+    },
+    "previous_descriptive": {
+      "door": "a photo of a building door or door frame",
+      "wall": "a photo of a masonry wall made of bricks or concrete blocks",
+      "ceiling": "a photo of a suspended ceiling with panels or tiles",
+      "other": "a photo of construction equipment, stairs or another building element"
+    },
+    "minimal_wall_other": {
+      "door": "a photo of an installed interior door in a building under construction",
+      "wall": "a photo of a masonry wall made of bricks or concrete blocks",
+      "ceiling": "a photo of a suspended ceiling being installed",
+      "other": "a photo of construction equipment, stairs or another building element"
+    }
+  },
+  "summary": [
+    {
+      "prompt_set": "captain_current",
+      "accuracy": 0.918918918918919,
+      "macro_f1": 0.920843776106934,
+      "correct": 34,
+      "mean_inference_latency_s": 0.024999044143827108,
+      "median_inference_latency_s": 0.024892800000088755,
+      "errors": [
+        "other (9).jpg",
+        "wall (2).jpg",
+        "wall.jpg"
+      ]
+    },
+    {
+      "prompt_set": "previous_descriptive",
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "correct": 37,
+      "mean_inference_latency_s": 0.025198415314990015,
+      "median_inference_latency_s": 0.025075700003071688,
+      "errors": []
+    },
+    {
+      "prompt_set": "minimal_wall_other",
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "correct": 37,
+      "mean_inference_latency_s": 0.02523538108102543,
+      "median_inference_latency_s": 0.025069099996471778,
+      "errors": []
+    }
+  ],
+  "minimal_error_fixes": {
+    "other (9).jpg": [
+      "other"
+    ],
+    "wall (2).jpg": [
+      "wall",
+      "other"
+    ],
+    "wall.jpg": [
+      "wall"
+    ]
+  },
+  "input_sha256": {
+    "ceiling (1).jpg": "f15e85c2ae36195b6e284427b8d57490f4edba7c339b88456e5d749b3d777fab",
+    "ceiling (2).jpg": "c22e055b184a204895178d869efae83af53c50ef7a16613b8e5169b1fc580259",
+    "ceiling (3).jpg": "fc7a1509f80a4667a9c7f77a309ce87ec59105ed89f25a4eb081f997f89bdad2",
+    "ceiling (4).jpg": "f26281d0bbe67e03d4d5d62dcc79c05abf00be3e63757c20f616bad35b128384",
+    "ceiling (5).jpg": "331356944e216eb641845d7f8f7d3e4a950252b690b3c899fcc478d071b1748c",
+    "ceiling (6).jpg": "d4259f2268bb1893bc791ce0b20796e9d0bdb61f3e5d3fc48dc1a9dcba646a36",
+    "ceiling (7).jpg": "dc39fce9b45c0f5721b1a97f7411f8af99e040b31f3b651f498846ee1cedccb5",
+    "ceiling.jpg": "e7e7ce8ffc4fa0a41930e5dae98a335914c42d4579873b488b23aa304dcc6fc5",
+    "door (1).jpg": "c9dd5fc8d1c365d7c99f12c60338b720a0e41f7ae6da2c0c47a4492cc02f29ca",
+    "door (2).jpg": "a6e057cdc5b4294e87667d595289ff319450dd8a3ec5614bc77da5c5acc8fda2",
+    "door (3).jpg": "4b8f1a1ad6ea39c019429a77a75249141550f2b51c209be344aa8df6549fc0c6",
+    "door (4).jpg": "82c87fbe0892f9c9ab249ba3810c450a4c9348bf7780bfc238a811b3e6ef2a77",
+    "door (5).jpg": "8206921286281a0a751e2bbcce143948d471e2981b6ba368493fa416401c13a0",
+    "door (6).jpg": "8c6d2f652cb503294714d467bf01f0b5814f6a4407b630dd948633b7c12e84a6",
+    "door (7).jpg": "4912c94a89421c6e59e9c6cb84d7bb0da33b015a7d3af241318e00414a3f4394",
+    "door (8).jpg": "afef4875e7ad85f3bc77df032484ea06c43b721a1547d2d0ccef562aa4f3e874",
+    "door (9).jpg": "9914615c9eed11113c462894bc7f01e257a19f2be3c0bf003ea078596acd1f06",
+    "door.jpg": "2d15a52dafa6c9e60f3cec9f23ffe4641c89cb2181a1331ca52551195d1f46f3",
+    "other (1).jpg": "cd870e90bd0711f26722b3e055d49dab14f10a2026d6d5d2099c4b3e0433787a",
+    "other (2).jpg": "21a96f5a068701f0b2922526b3d3a4e7583449af1c207b848f94f2f78bca455b",
+    "other (3).jpg": "fd7c3eb1aec4cc57d5b527b75ce193fcbfa4fd4e43c33da7443c49dba7c5a616",
+    "other (4).jpg": "3c286da9c1a97a1584aa5adb832313229997746f63797b64d229019ba1778418",
+    "other (5).jpg": "965cc462d38f26f2a3ead1b5dd57742a3ee07d15a8e53479641fb493379d1823",
+    "other (6).jpg": "6e2b354b2baddde69616bd5d59e67bc3f3cc69d4f6cb89014c34eebe10e58911",
+    "other (7).jpg": "d9e7dd12b6eb95066efcca1f9462763331e9dc653ff63c7c3b0f815a5f2e71ae",
+    "other (8).jpg": "48fb34f268ed16dfb662475b5f7aaff5200760134b64a63880f2ce465abba30d",
+    "other (9).jpg": "3fed795f1992055261b68afcd0d21e2daddc438e067663f6f7b01ab521e57a97",
+    "wall (1).jpg": "3dbd96856bb67ded3599eb04d92b688c87b073bd4dee51f326f88260fdc26ac8",
+    "wall (2).jpg": "2619fcd46b2c54f455269232c4943e4172dce461d3d2d590226dd71caf2a46dc",
+    "wall (3).jpg": "6ad01133923754a0d8e8e1704a9d7e67328e524fc109c232e11b21f43a084034",
+    "wall (4).jpg": "8c623530dc8106350974be5eb0cf87679e6ec002b18994a863fb2191a11f749c",
+    "wall (5).jpg": "6d399afeb697c20f7441fd97a6b6bee8ccfd8823fd57d625592459356848813f",
+    "wall (6).jpg": "048284820e500c67e42957130bcc91cc4f39f189a680c9599b7e0071d42d92fa",
+    "wall (7).jpg": "0af7ea755b9be467d779e4f48cc211fb5b23d16a1e26907c26b6c1d040214c11",
+    "wall (8).jpg": "ba894793b3c3a1a426de0a82b6127654681e1a150962fa9083ad9fe42ca7e6ac",
+    "wall (9).jpg": "786ba6fc86354c2f6ff9e978870058a639cf1b6c2e7add6c890eae3d77feedae",
+    "wall.jpg": "aa50704baf627a16f31e5d2438768375fb970d7739e4813a1924bbf3aba35a4f"
+  }
+}

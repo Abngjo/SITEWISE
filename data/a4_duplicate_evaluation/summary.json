@@ -1,0 +1,18 @@
+{
+  "sources": 10,
+  "positive_pairs": 100,
+  "similar_door_negative_pairs": 900,
+  "TP": 100,
+  "FN": 0,
+  "FP": 0,
+  "TN": 900,
+  "precision": 1.0,
+  "recall": 1.0,
+  "false_positive_rate": 0.0,
+  "trigger_methods": {
+    "sha256": 20,
+    "whole_phash": 40,
+    "crop_phash_dhash": 40
+  },
+  "runtime_s": 66.36846680000235
+}

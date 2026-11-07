@@ -1,0 +1,49 @@
+filename,truth,swapped_prompts,swap_count,prediction,fixed,normalized_score,latency_s
+other (9).jpg,other,none,0,door,False,0.7516235098666123,0.024682199997187126
+other (9).jpg,other,door,1,door,False,0.797673367313362,0.026368799997726455
+other (9).jpg,other,wall,1,door,False,0.7467165815334816,0.02500040000450099
+other (9).jpg,other,ceiling,1,door,False,0.6282084543466615,0.025177800001983996
+other (9).jpg,other,other,1,other,True,0.9139257647671987,0.025546599994413555
+other (9).jpg,other,door+wall,2,door,False,0.7934261644455703,0.026065899997774977
+other (9).jpg,other,door+ceiling,2,door,False,0.6876304633480792,0.025138099998002872
+other (9).jpg,other,door+other,2,other,True,0.8915028410337421,0.025422799997613765
+other (9).jpg,other,wall+ceiling,2,door,False,0.6247769673982306,0.025820299997576512
+other (9).jpg,other,wall+other,2,other,True,0.9132625657896949,0.025369899994984735
+other (9).jpg,other,ceiling+other,2,other,True,0.8945060905530151,0.025045599999430124
+other (9).jpg,other,door+wall+ceiling,3,door,False,0.6844719540341218,0.025073100005101878
+other (9).jpg,other,door+wall+other,3,other,True,0.8908717744245411,0.02474159999837866
+other (9).jpg,other,door+ceiling+other,3,other,True,0.8730147517056329,0.025661800005764235
+other (9).jpg,other,wall+ceiling+other,3,other,True,0.8938707664868643,0.025204899997333996
+other (9).jpg,other,door+wall+ceiling+other,4,other,True,0.8724095790751983,0.025214699999196455
+wall (2).jpg,wall,none,0,other,False,0.5305903059918998,0.02501759999722708
+wall (2).jpg,wall,door,1,other,False,0.38469509616718855,0.02596879999327939
+wall (2).jpg,wall,wall,1,wall,True,0.9933494376760591,0.025220900002750568
+wall (2).jpg,wall,ceiling,1,other,False,0.5152091227256625,0.02822599999490194
+wall (2).jpg,wall,other,1,wall,True,0.6858755521090445,0.02590990000317106
+wall (2).jpg,wall,door+wall,2,wall,True,0.9887089149080842,0.026142199996684212
+wall (2).jpg,wall,door+ceiling,2,other,False,0.3765446749870715,0.026763999994727783
+wall (2).jpg,wall,door+other,2,wall,True,0.4390236556507221,0.026159900000493508
+wall (2).jpg,wall,wall+ceiling,2,wall,True,0.9929825594832334,0.02629999999771826
+wall (2).jpg,wall,wall+other,2,wall,True,0.9973672797387624,0.025137399999948684
+wall (2).jpg,wall,ceiling+other,2,wall,True,0.6568041323057627,0.02513380000164034
+wall (2).jpg,wall,door+wall+ceiling,3,wall,True,0.9883454558915679,0.025512899999739602
+wall (2).jpg,wall,door+wall+other,3,wall,True,0.9926892300121811,0.024882699995941948
+wall (2).jpg,wall,door+ceiling+other,3,wall,True,0.4269280490391078,0.02935050000087358
+wall (2).jpg,wall,wall+ceiling+other,3,wall,True,0.9969974282411641,0.024976799999421928
+wall (2).jpg,wall,door+wall+ceiling+other,4,wall,True,0.992322839242258,0.0251191999996081
+wall.jpg,wall,none,0,other,False,0.7837487857956527,0.022596499999053776
+wall.jpg,wall,door,1,other,False,0.777246052507308,0.02169329999742331
+wall.jpg,wall,wall,1,wall,True,0.6880468405744397,0.023690900001383852
+wall.jpg,wall,ceiling,1,other,False,0.6823514392498969,0.022133399994345382
+wall.jpg,wall,other,1,door,False,0.5606095482128111,0.021725799997511785
+wall.jpg,wall,door+wall,2,wall,True,0.6861081480312083,0.021166800004721154
+wall.jpg,wall,door+ceiling,2,other,False,0.6774171474000813,0.022061200004827697
+wall.jpg,wall,door+other,2,door,False,0.5759940424798732,0.02161609999893699
+wall.jpg,wall,wall+ceiling,2,wall,True,0.6551655771980673,0.023049600000376813
+wall.jpg,wall,wall+other,2,wall,True,0.929618379128628,0.023288000003958587
+wall.jpg,wall,ceiling+other,2,ceiling,False,0.4199584474471866,0.022930599996470846
+wall.jpg,wall,door+wall+ceiling,3,wall,True,0.6534075177512139,0.022679599998809863
+wall.jpg,wall,door+wall+other,3,wall,True,0.9260828623159489,0.022710700002789963
+wall.jpg,wall,door+ceiling+other,3,ceiling,False,0.41089241023785605,0.022723199996107724
+wall.jpg,wall,wall+ceiling+other,3,wall,True,0.8705852981677067,0.021767099999124184
+wall.jpg,wall,door+wall+ceiling+other,4,wall,True,0.8674838033366016,0.022263300001213793

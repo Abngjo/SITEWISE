@@ -1,0 +1,106 @@
+{
+  "model": "mfjbrr/team-QH045-sitewise",
+  "pipeline_kind": "ft",
+  "device": "cuda:0",
+  "checkpoint_id2label": {
+    "0": "ceiling",
+    "1": "door",
+    "2": "other",
+    "3": "wall"
+  },
+  "checkpoint_label2id": {
+    "ceiling": 0,
+    "door": 1,
+    "other": 2,
+    "wall": 3
+  },
+  "development_photos": 37,
+  "repeats": 3,
+  "fine_tuned": {
+    "accuracy": 0.972972972972973,
+    "macro_f1": 0.973389355742297,
+    "mean_latency_s": 0.04003369459475449,
+    "median_latency_s": 0.050292100000660866,
+    "errors": [
+      "other (9).jpg"
+    ]
+  },
+  "zero_shot_existing_baseline": {
+    "accuracy": 0.918918918918919,
+    "macro_f1": 0.920843776106934,
+    "mean_latency_s": 0.024841956756308965,
+    "errors": [
+      "other (9).jpg",
+      "wall (2).jpg",
+      "wall.jpg"
+    ]
+  },
+  "production_threshold_unchanged": 0.8,
+  "fine_tuned_escalation_at_0.80": {
+    "count": 1,
+    "development_minimum": {
+      "filename": "other (9).jpg",
+      "truth": "other",
+      "prediction": "door",
+      "score": 0.8147906064987183,
+      "latency_s": 0.04937209999479819,
+      "model_id": "mfjbrr/team-QH045-sitewise",
+      "score_door": 0.8147906064987183,
+      "score_ceiling": 0.16962401568889618,
+      "score_other": 0.00809400249272585,
+      "score_wall": 0.0074914125725626945,
+      "median_latency_s": 0.04937209999479819
+    },
+    "low_confidence_case": {
+      "filename": "test/other/other_005.jpg",
+      "truth": "other",
+      "prediction": "other",
+      "score": 0.5319794416427612
+    },
+    "low_confidence_case_source": "previously evaluated A7 held-out example (routing check only)"
+  },
+  "analyze_checks": {
+    "category_mismatch": {
+      "model_id": "mfjbrr/team-QH045-sitewise",
+      "escalation_model_id": "google/gemma-4-31B-it",
+      "final_label": "wall",
+      "escalation_reason": "label_mismatch",
+      "requires_review": true,
+      "completion_certified": false
+    },
+    "low_confidence": {
+      "model_id": "mfjbrr/team-QH045-sitewise",
+      "escalation_model_id": "google/gemma-4-31B-it",
+      "final_label": "other",
+      "escalation_reason": "low_confidence",
+      "requires_review": true,
+      "completion_certified": false
+    },
+    "cache_hit": true,
+    "provider_calls": 0,
+    "offline_vlm_stub_calls": 2
+  },
+  "cost_summary": {
+    "photos_processed": 3,
+    "escalation_rate": 1.0,
+    "avg_latency_s": 0.158,
+    "est_total_cost_usd": 0.0,
+    "est_cost_if_always_vlm_usd": 0.006,
+    "cache_hits": 1,
+    "estimated_cost_usd": 0.0,
+    "provider_confirmed_cost_usd": 0.0,
+    "total_cost_usd": 0.0,
+    "avoided_provider_cost_usd": 0.0,
+    "estimated_savings_vs_always_vlm_usd": 0.006
+  },
+  "duplicate_check": {
+    "evidence_id": "DUP-1",
+    "certificate_no": "A6",
+    "kind": "exact",
+    "score": 1.0
+  },
+  "routing_models": {
+    "primary": "google/gemma-4-31B-it",
+    "fallback": "Qwen/Qwen2.5-VL-72B-Instruct"
+  }
+}
