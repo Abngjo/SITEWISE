@@ -35,6 +35,16 @@ LABELS = {
     "ceiling": "a photo of a suspended ceiling being installed",
     "other": "a photo of a construction site with no door, wall or ceiling work visible",
 }
+# Extra questions on the VLM call. Both are optional: a bad answer never fails the call.
+AUTHENTICITY = ("looks_real", "possibly_edited", "possibly_ai_generated", "unclear")
+PHASES = {
+    "door": ("opening_only", "frame_only", "leaf_hung", "complete_set"),
+    "wall": ("first_courses", "part_height", "full_height", "finished_surface"),
+    "ceiling": ("grid_only", "part_boarded", "fully_boarded", "finished"),
+    "slab": ("formwork_or_rebar", "concrete_poured", "cured_or_finished"),
+}
+# Display only: a rough reading of `completion`, set by code rather than the model. Never feeds payment.
+COMPLETION_PCT = {"complete": 100, "partial": 50, "not_started": 0}
 STAGE1_MODEL = os.getenv("SITEWISE_STAGE1_MODEL", "google/siglip2-base-patch16-224")
 FINETUNED_MODEL = os.getenv("SITEWISE_FINETUNED_MODEL", "")
 VLM_MODEL = os.getenv("SITEWISE_VLM_MODEL", "google/gemma-4-31B-it")
@@ -117,16 +127,41 @@ def _validate_vlm_response(parsed: dict) -> dict:
     return parsed
 
 
+def _clean_extras(parsed: dict, declared_type: str | None) -> dict:
+    """Optional answers are cleaned, not validated, so they can't trigger the fallback model."""
+    if parsed.get("authenticity") not in AUTHENTICITY:
+        parsed["authenticity"] = "unclear"
+    reason = parsed.get("authenticity_reason")
+    parsed["authenticity_reason"] = reason.strip()[:200] if isinstance(reason, str) and reason.strip() else None
+    # A phase only means something if the photo shows the declared element. Slabs have no label of their own.
+    same_element = declared_type not in LABELS or parsed["label"] == declared_type
+    phases = PHASES.get(declared_type, ())
+    phase = parsed.get("phase")
+    # Don't show a stage that contradicts the completion answer, e.g. "partial" with "complete_set".
+    finished = parsed["completion"] == "complete"
+    contradicts = phase in phases and ((phase == phases[-1] and not finished) or (phase in phases[:2] and finished))
+    parsed["phase"] = phase if same_element and phase in phases and not contradicts else None
+    return parsed
+
+
 def stage2_vlm(img: Image.Image, declared_type: str | None, claimed_complete: bool = False) -> dict:
     from huggingface_hub import InferenceClient
     buf = io.BytesIO()
     img.convert("RGB").save(buf, format="JPEG", quality=85)
     url = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+    phases = PHASES.get(declared_type)
     prompt = (
         "You are assisting a construction site engineer. Look at the photo and answer ONLY with JSON: "
         '{"label": one of ["door","wall","ceiling","other"], '
         '"completion": one of ["complete","partial","not_started","unclear"], '
-        '"reason": "<one short sentence>"}. '
+        '"reason": "<one short sentence>"'
+        + (f', "phase": one of {json.dumps(list(phases), separators=(",", ":"))}' if phases else "")
+        + f', "authenticity": one of {json.dumps(list(AUTHENTICITY), separators=(",", ":"))}, '
+        '"authenticity_reason": "<one short sentence>"}. '
+        "For authenticity, answer possibly_edited or possibly_ai_generated only if you can point to a "
+        "specific visual sign, such as warped geometry, garbled text, impossible details or cut-and-paste "
+        "edges. A blurry, dark or low-quality photo is not a sign. "
+        # The contractor's claim stays last, as in the prompt validated in data/a7_evaluation.
         f"The contractor says this photo shows a {declared_type or 'construction element'}"
         + (" and claims the work is COMPLETE (fully installed, ready to pay). Judge strictly whether the "
            "installation visible in the photo is complete; e.g. a door frame without the door leaf is "
@@ -176,7 +211,7 @@ def stage2_vlm(img: Image.Image, declared_type: str | None, claimed_complete: bo
             if getattr(out.choices[0], "finish_reason", None) == "length":
                 raise ValueError("response was truncated")
             text = out.choices[0].message.content
-            res = _validate_vlm_response(_extract_json_object(text))
+            res = _clean_extras(_validate_vlm_response(_extract_json_object(text)), declared_type)
             break
         except Exception as e:
             last_err = e
@@ -388,6 +423,9 @@ def _analyze(image_bytes: bytes, evidence_id: str, declared_type: str | None,
         "stage1_error": result.get("stage1_error"),
         # complete | partial | not_started | unclear | None (no VLM call)
         "completion": (result.get("vlm") or {}).get("completion"),
+        "completion_pct": COMPLETION_PCT.get((result.get("vlm") or {}).get("completion")),
+        "phase": (result.get("vlm") or {}).get("phase"),
+        "authenticity": (result.get("vlm") or {}).get("authenticity"),
         "requires_review": True,          # every observation goes to a human
         "completion_certified": False,    # deliberate: AI never certifies
         "latency_s": round(latency, 3),

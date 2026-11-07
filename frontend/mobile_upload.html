@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark light">
 <title>SITEWISE · Site photo</title>
-<!-- Served by the backend at /m (QR code target). Restyled to match the app; logic unchanged:
-     the capture time is recorded by this page (time_source=in_app_capture), not taken from file metadata. -->
+<!-- Served by the backend at /m (QR code target). This page records the upload time (time_source=in_app_capture).
+     The backend also reads the file's own metadata. Browsers often strip GPS from photos, so this page
+     sends the phone's location when the user allows it. -->
 <style>
   :root { --bg:#0A1120; --surface:#111B2E; --line:#22314C; --ink:#E8EDF5; --ink-2:#B4BFD0; --ink-3:#8A97AD; --accent:#6A9CFF; --accent-ink:#07101F;
           --ok:#2ECC71; --unc:#F1C40F; --bad:#E74C3C; --none:#9AA5AE; --brand:#8A1538; color-scheme: dark; }
@@ -48,7 +49,7 @@
 <body>
 <div class="wrap">
   <header><span class="brand"><span class="mark"></span>SITEWISE</span><span class="sample">SAMPLE DATA</span></header>
-  <div><h1>Site photo</h1><p>The capture time is recorded by this page, not taken from file metadata. The AI checks the photo; an engineer decides.</p></div>
+  <div><h1>Site photo</h1><p>SITEWISE checks when and where the photo was taken. It will ask for your location to compare with the site. The AI checks the photo; an engineer decides.</p></div>
   <div class="card">
     <label>Element<select id="el"><option>Loading…</option></select></label>
     <label class="shot" id="shot">
@@ -65,7 +66,13 @@
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-let file = null;
+let file = null, located = null;
+// Asked when the photo is chosen, so the upload never waits on the permission prompt.
+const locate = () => new Promise(resolve => {
+  if (!navigator.geolocation) return resolve(null);
+  navigator.geolocation.getCurrentPosition(p => resolve(p.coords), () => resolve(null),
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+});
 fetch("/api/elements").then(r => r.json()).then(es => {
   $("el").innerHTML = es.map(e => `<option value="${esc(e.element_id)}" ${e.element_id === "D-103" ? "selected" : ""}>${esc(e.element_id)} - ${esc(e.name)}</option>`).join("");
 }).catch(() => { $("err").textContent = "Can't reach SITEWISE. Check you're on the same wifi as the demo laptop."; $("err").classList.add("show"); });
@@ -73,7 +80,7 @@ $("ph").addEventListener("change", e => {
   file = e.target.files[0] || null;
   $("go").disabled = !file;
   const old = $("shot").querySelector("img"); if (old) old.remove();
-  if (file) { const img = new Image(); img.src = URL.createObjectURL(file); img.alt = "Selected photo"; $("shot").appendChild(img); }
+  if (file) { const img = new Image(); img.src = URL.createObjectURL(file); img.alt = "Selected photo"; $("shot").appendChild(img); located = locate(); }
 });
 $("go").addEventListener("click", async () => {
   if (!file) { $("err").textContent = "Pick a photo first"; $("err").classList.add("show"); return; }
@@ -83,6 +90,8 @@ $("go").addEventListener("click", async () => {
   fd.append("capture_time", local); fd.append("time_source", "in_app_capture"); fd.append("uploader", "mobile");
   $("go").disabled = true; $("go").innerHTML = '<span class="spin"></span>Analyzing with Hugging Face models…';
   try {
+    const coords = await Promise.race([located, new Promise(done => setTimeout(done, 1500, null))]);
+    if (coords) { fd.append("gps_lat", coords.latitude); fd.append("gps_lon", coords.longitude); fd.append("gps_accuracy_m", coords.accuracy); }
     const r = await fetch("/api/evidence", { method: "POST", body: fd }); const j = await r.json();
     if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : JSON.stringify(j));
     const a = j.ai || {};
@@ -93,10 +102,14 @@ $("go").addEventListener("click", async () => {
          <div class="row"><span>Stage</span><span>${a.escalation_model_id ? "Escalated to " + esc(a.escalation_model_id.split("/").pop()) : "Small model only"}</span></div>`;
     const WHY = { completion_check: "Claimed complete: checking completion", label_mismatch: "Photo doesn't match the element", low_confidence: "Small model unsure" };
     if (!a.error && a.escalation_reason) h += `<div class="row"><span>Why</span><span>${esc(WHY[a.escalation_reason] || a.escalation_reason)}</span></div>`;
-    if (a.completion) h += `<div class="row"><span>Completion</span><b>${esc(String(a.completion).replace("_", " "))}</b></div>`;
+    if (a.completion) h += `<div class="row"><span>Completion</span><b>${esc(String(a.completion).replace("_", " "))}${a.completion_pct != null ? ` (about ${esc(a.completion_pct)}%)` : ""}</b></div>`;
+    if (a.phase) h += `<div class="row"><span>Stage of work</span><b>${esc(String(a.phase).replace(/_/g, " "))}</b></div>`;
     if (a.vlm && a.vlm.reason) h += `<div class="row"><span>Reason</span><span>${esc(a.vlm.reason)}</span></div>`;
     if (a.vlm_error) h += `<div class="warn">Big model unavailable: sent to engineer review.</div>`;
     if (!a.error) h += `<div class="row"><span>Matches element</span><span>${a.matches_declared_element ? "Yes" : "No"}</span></div>`;
+    const meta = j.photo_meta || {}, loc = meta.location;
+    if (meta.file_taken_at) h += `<div class="row"><span>File says taken</span><span>${esc(meta.file_taken_at.replace("T", " ").slice(0, 16))}${meta.camera ? " · " + esc(meta.camera) : ""}</span></div>`;
+    if (loc) h += `<div class="row"><span>Location</span><span>${esc(loc.lat)}, ${esc(loc.lon)}${loc.distance_from_site_km != null ? " · " + esc(loc.distance_from_site_km) + " km from site" : ""}</span></div>`;
     if (j.duplicates && j.duplicates.length) h += `<div class="warn">Possible reuse of ${esc(j.duplicates[0].evidence_id)} (${esc(j.duplicates[0].kind)}). Review needed.</div>`;
     (j.flags || []).forEach(f => h += `<div class="warn">${esc(f.message)}</div>`);
     h += `<p>Sent to engineer for review. AI does not certify work.</p>`;

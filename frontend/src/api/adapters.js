@@ -115,6 +115,7 @@ export const evidence = e => {
       observations: obs,
       escalated: !!(ai.escalation_model_id || ai.vlm),
       vlm: ai.vlm ? { ...ai.vlm, model: ai.escalation_model_id } : null,
+      completion_pct: ai.completion_pct ?? null,
       model: ai.model_id,
       matches: ai.matches_declared_element,
       requires_review: ai.requires_review !== false,
@@ -149,7 +150,12 @@ export const schedule = s => ({
   })),
 });
 
-export const FLAG_LABEL = { summer_working_hours: "Summer working hours", timestamp_anomaly: "Missing capture time", ppe: "PPE" };
+export const FLAG_LABEL = {
+  summer_working_hours: "Summer working hours", timestamp_anomaly: "Missing capture time", ppe: "PPE",
+  no_camera_metadata: "No camera metadata", photo_predates_period: "Photo predates this period",
+  photo_date_in_future: "Date in the future", capture_time_mismatch: "Time mismatch", off_site: "Away from site",
+  authenticity_review: "Check authenticity",
+};
 export const safety = s => ({ items: Array.isArray(s) ? s : s.items || [] });
 
 export const costs = c => {

@@ -13,6 +13,25 @@ const TIME_SOURCE = {
   missing: ["No capture time: upload time shown", true],
 };
 const shownTime = e => (e.captured_at ? fmtDateTime(e.captured_at) : `uploaded ${fmtDateTime(e.uploaded_at)}`);
+const LOCATION_SOURCE = { photo_gps: "From the photo's GPS", device_at_upload: "Phone's location at upload" };
+const DATE_PLACE_FLAGS = ["no_camera_metadata", "photo_predates_period", "photo_date_in_future", "capture_time_mismatch", "off_site"];
+const words = s => String(s).replace(/_/g, " ");
+
+function PhotoMeta({ meta }) {
+  const loc = meta.location;
+  return (
+    <>
+      {meta.file_taken_at && <span className="small muted">File says {fmtDateTime(meta.file_taken_at)}{meta.camera ? ` · ${meta.camera}` : ""}</span>}
+      <span className="lbl">Location</span>
+      {loc ? (
+        <>
+          <p>{loc.lat.toFixed(3)}, {loc.lon.toFixed(3)}{loc.distance_from_site_km != null && ` · ${loc.distance_from_site_km} km from site`}</p>
+          <span className="small muted">{LOCATION_SOURCE[loc.source] || loc.source}. Can be edited, so not proof.</span>
+        </>
+      ) : <span className="small muted">No location available</span>}
+    </>
+  );
+}
 
 function Upload({ elements, defaultElement, onUploaded }) {
   const { upload } = useStore();
@@ -159,6 +178,8 @@ export default function Evidence() {
                       {e.ai.escalated && <span className="tag accent">Escalated to VLM</span>}
                       {e.duplicates.length > 0 && <span className="tag warn">Possible reuse</span>}
                       {e.flags.some(f => f.type === "summer_working_hours") && <span className="tag warn"><Icon name="sun" size={12} />Heat hours</span>}
+                      {e.flags.some(f => DATE_PLACE_FLAGS.includes(f.type)) && <span className="tag warn">Check date or place</span>}
+                      {e.flags.some(f => f.type === "authenticity_review") && <span className="tag warn">Check authenticity</span>}
                     </span>
                   </span>
                 </button>
@@ -217,14 +238,16 @@ export default function Evidence() {
                     <span className="lbl">Capture time</span>
                     <p>{cur.captured_at ? fmtDateTime(cur.captured_at) : fmtDateTime(cur.uploaded_at)}</p>
                     <span className={`small ${TIME_SOURCE[cur.time_source]?.[1] ? "warn-t" : "muted"}`}>{TIME_SOURCE[cur.time_source]?.[0] || cur.time_source}</span>
+                    {cur.photo_meta && <PhotoMeta meta={cur.photo_meta} />}
                   </div>
                 </div>
                 {cur.ai.escalated && cur.ai.vlm && (
-                  <div className="vlm"><span className="tag accent">Escalated to VLM</span><p>“{cur.ai.vlm.reason}”</p><span className="small muted">{cur.ai.vlm.model || "Gemma 4"} via Hugging Face Inference Providers{cur.ai.vlm.completion ? ` · completion: ${cur.ai.vlm.completion}` : ""}</span></div>
+                  <div className="vlm"><span className="tag accent">Escalated to VLM</span><p>“{cur.ai.vlm.reason}”</p><span className="small muted">{cur.ai.vlm.model || "Gemma 4"} via Hugging Face Inference Providers</span>{cur.ai.vlm.completion && <span className="small">Completion: <b>{words(cur.ai.vlm.completion)}</b>{cur.ai.completion_pct != null && ` (about ${cur.ai.completion_pct}%)`}{cur.ai.vlm.phase && <> · Stage of work: <b>{words(cur.ai.vlm.phase)}</b></>}. An observation only: it doesn't change payment.</span>}</div>
                 )}
                 {cur.flags.length > 0 && (
                   <ul className="flag-list">{cur.flags.map((f, i) => <li key={i}><span className="tag warn">{f.type === "summer_working_hours" && <Icon name="sun" size={12} />}{FLAG_LABEL[f.type] || f.type}</span>{f.message}</li>)}</ul>
                 )}
+                {cur.photo_meta && <p className="small muted">Date, place and authenticity checks are prompts for review. A photo with no flags isn't proven genuine.</p>}
               </>
             ) : (
               <div className="no-photo-note"><Icon name="evidence" size={20} /><div><b>No photo submitted for {el.element_id} in {audit?.certificate || "this certificate"}.</b><p className="muted small">You can still decide on this line, or upload a photo for it below.</p></div></div>

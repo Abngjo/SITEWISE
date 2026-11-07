@@ -62,6 +62,8 @@ Evaluation on the dataset's fixed `test` split (n=32, 8 photos per class). The s
 
 Costs are calculated from measured token counts at published rates, not provider-confirmed billing. Local latencies come from the evaluator's machine, which may have used a GPU, so they may not match CPU hardware.
 
+This table used an earlier Gemma prompt. The app now also asks Gemma about authenticity and stage of work, so a Gemma call costs an estimated $0.00015 to $0.00017 and took about 1 second longer in a side-by-side test. See `data/d_photo_checks/REPORT.md`.
+
 On the team's separate 37-photo development set, this model scored 97.30% (macro F1 0.973) against 91.89% (0.921) for zero-shot. See `ai/finetuned_compatibility.md`.
 
 **These are not real-world accuracy figures.** n=32 is small, every image was hand-picked by one person for clarity, and most are not Qatar or Gulf site photos. Zero-shot also scored 96.88%, so these test photos are easy to tell apart. Expect lower accuracy on messy, low-light or partial site photos.

@@ -3,6 +3,12 @@
   "name": "Al Wakra Community Clinic - Package B (SAMPLE DATA)",
   "name_ar": "مركز الوكرة الصحي المجتمعي - الحزمة ب (بيانات تجريبية)",
   "location": "Al Wakra, Qatar",
+  "site_location": {
+    "lat": 25.1667,
+    "lon": 51.6,
+    "radius_km": 2,
+    "note": "Sample point in Al Wakra for the fictional project, not a real site."
+  },
   "contractor": "Gulf Example Contracting W.L.L. (fictional)",
   "currency": "QAR",
   "contract_value": 1800000,

@@ -1,0 +1,140 @@
+{
+ "model": "google/gemma-4-31B-it",
+ "calls": 72,
+ "models_used": {
+  "google/gemma-4-31B-it": 72
+ },
+ "est_total_cost_usd": 0.01132,
+ "a7_old_prompt": {
+  "accuracy": 1.0,
+  "avg_latency_s": 3.277,
+  "cost_per_call_usd": 8.4e-05
+ },
+ "groups": {
+  "real_unclaimed": {
+   "n": 32,
+   "errors": 0,
+   "authenticity": {
+    "looks_real": 31,
+    "possibly_edited": 1
+   },
+   "flagged": 1,
+   "label_accuracy": 1.0,
+   "completion": {
+    "complete": 16,
+    "partial": 12,
+    "not_started": 3,
+    "unclear": 1
+   },
+   "phase": {
+    "finished": 8,
+    "complete_set": 7,
+    "leaf_hung": 1,
+    "None": 8,
+    "finished_surface": 1,
+    "first_courses": 4,
+    "part_height": 3
+   },
+   "avg_latency_s": 8.543,
+   "avg_input_tokens": 355.8,
+   "avg_output_tokens": 68.6,
+   "est_cost_per_call_usd": 0.0001482
+  },
+  "real_claimed": {
+   "n": 24,
+   "errors": 0,
+   "authenticity": {
+    "looks_real": 23,
+    "possibly_edited": 1
+   },
+   "flagged": 1,
+   "label_accuracy": 1.0,
+   "completion": {
+    "partial": 8,
+    "complete": 15,
+    "not_started": 1
+   },
+   "phase": {
+    "None": 1,
+    "finished": 7,
+    "complete_set": 7,
+    "leaf_hung": 1,
+    "finished_surface": 1,
+    "first_courses": 5,
+    "full_height": 1,
+    "part_height": 1
+   },
+   "avg_latency_s": 11.314,
+   "avg_input_tokens": 410.5,
+   "avg_output_tokens": 70.9,
+   "est_cost_per_call_usd": 0.0001647
+  },
+  "ai_generated": {
+   "n": 8,
+   "errors": 0,
+   "authenticity": {
+    "looks_real": 8
+   },
+   "flagged": 0,
+   "label_accuracy": 1.0,
+   "completion": {
+    "partial": 6,
+    "complete": 2
+   },
+   "phase": {
+    "grid_only": 1,
+    "fully_boarded": 1,
+    "complete_set": 2,
+    "frame_only": 1,
+    "full_height": 2,
+    "None": 1
+   },
+   "avg_latency_s": 3.731,
+   "avg_input_tokens": 390.0,
+   "avg_output_tokens": 74.0,
+   "est_cost_per_call_usd": 0.0001615
+  },
+  "edited": {
+   "n": 6,
+   "errors": 0,
+   "authenticity": {
+    "looks_real": 2,
+    "possibly_edited": 4
+   },
+   "flagged": 4,
+   "label_accuracy": 1.0,
+   "completion": {
+    "partial": 3,
+    "complete": 3
+   },
+   "phase": {
+    "leaf_hung": 1,
+    "None": 2,
+    "complete_set": 3
+   },
+   "avg_latency_s": 5.371,
+   "avg_input_tokens": 395.8,
+   "avg_output_tokens": 76.7,
+   "est_cost_per_call_usd": 0.0001652
+  },
+  "door_frame_no_leaf": {
+   "n": 2,
+   "errors": 0,
+   "authenticity": {
+    "looks_real": 2
+   },
+   "flagged": 0,
+   "label_accuracy": 1.0,
+   "completion": {
+    "partial": 2
+   },
+   "phase": {
+    "frame_only": 2
+   },
+   "avg_latency_s": 3.942,
+   "avg_input_tokens": 441.0,
+   "avg_output_tokens": 69.5,
+   "est_cost_per_call_usd": 0.0001719
+  }
+ }
+}

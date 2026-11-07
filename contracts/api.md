@@ -36,6 +36,8 @@ Status colors: supported `#2ECC71`, uncertain `#F1C40F`, discrepancy `#E74C3C`, 
 
 Notes: `Evidence` responses never include the `embedding` field. If AI fails, `ai.error` is set and `ai.requires_review` is true (no 500).
 
-AIResult additions: `claimed_complete` (bool: element claimed in current certificate → VLM always judges completion), `escalation_reason` (completion_check | label_mismatch | low_confidence | null), `completion` (complete | partial | not_started | unclear | null).
+AIResult additions: `claimed_complete` (bool: element claimed in current certificate → VLM always judges completion), `escalation_reason` (completion_check | label_mismatch | low_confidence | null), `completion` (complete | partial | not_started | unclear | null), `completion_pct` (100 | 50 | 0 | null: set by code from `completion`, display only, never feeds payment), `phase` (string | null, from `PHASES` in `ai/inference.py`), `authenticity` (looks_real | possibly_edited | possibly_ai_generated | unclear | null). `vlm` also carries `phase`, `authenticity`, `authenticity_reason`.
+
+Evidence additions: `photo_meta` `{file_taken_at, camera, software, has_camera_metadata, ai_marker, location{lat, lon, source: photo_gps|device_at_upload, accuracy_m, distance_from_site_km}|null}`. POST `/api/evidence` also takes optional `gps_lat`, `gps_lon`, `gps_accuracy_m`. New `Flag.type` values, all review-only, on `Evidence.flags` but not in `/api/safety`: `no_camera_metadata`, `photo_predates_period`, `photo_date_in_future`, `capture_time_mismatch`, `off_site`, `authenticity_review`. `/api/project` adds `site_location` `{lat, lon, radius_km, note}`.
 
 Schedule forecast additions: `delay_exposure_qar`, `delay_damages_per_day_qar`, `delay_damages_note`. Overview adds `delay_exposure_qar`.

@@ -4,7 +4,6 @@ Endpoint contract lives in contracts/api.md. Do not change shapes without tellin
 """
 from __future__ import annotations
 
-import io
 import sys
 import uuid
 from datetime import date, datetime
@@ -15,7 +14,6 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from PIL import Image
 from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +26,7 @@ except ImportError:
     pass
 
 from ai import duplicates, inference  # noqa: E402
-from backend.engines import ask as ask_engine, bim, compliance, letter, payment, report, schedule  # noqa: E402
+from backend.engines import ask as ask_engine, bim, compliance, letter, payment, photo_checks, report, schedule  # noqa: E402
 from backend.store import DATA_DIR, store  # noqa: E402
 
 QATAR_TZ = ZoneInfo("Asia/Qatar")  # server runs in UTC; all timestamps shown in Doha time
@@ -79,17 +77,6 @@ def _warm():
     for v in store.evidence.values():  # embeddings for prior photos once models are available
         if v.get("prior") and not v.get("embedding") and Path(v["path"]).exists():
             v["embedding"] = inference.embed(Path(v["path"]).read_bytes())
-
-
-def _exif_time(b: bytes) -> str | None:
-    try:
-        exif = Image.open(io.BytesIO(b)).getexif()
-        raw = exif.get(36867) or exif.get(306)  # DateTimeOriginal / DateTime
-        if raw:
-            return datetime.strptime(raw, "%Y:%m:%d %H:%M:%S").isoformat()
-    except Exception:
-        pass
-    return None
 
 
 # ------------------------------- read endpoints -------------------------------
@@ -331,6 +318,9 @@ async def upload_evidence(
     capture_time: str | None = Form(None),       # ISO; set by the in-app camera page
     time_source: str = Form("exif"),             # in_app_capture | exif | manual
     uploader: str = Form("contractor"),
+    gps_lat: str | None = Form(None),            # phone's location at upload, with the user's permission
+    gps_lon: str | None = Form(None),
+    gps_accuracy_m: str | None = Form(None),
 ):
     b = await file.read()
     if not b:
@@ -341,8 +331,9 @@ async def upload_evidence(
     path = UPLOAD_DIR / f"{eid}{Path(file.filename or 'x.jpg').suffix or '.jpg'}"
     path.write_bytes(b)
 
+    file_meta = photo_checks.read_file(b)
     if not capture_time:
-        capture_time = _exif_time(b)
+        capture_time = file_meta["taken_at"]
         time_source = "exif" if capture_time else "missing"
 
     rec = {
@@ -374,6 +365,13 @@ async def upload_evidence(
         flags.append({"type": "timestamp_anomaly", "severity": "review", "evidence_id": eid,
                       "message": "No capture time available for this photo."})
     store.safety.extend(flags)
+    rec["photo_meta"], photo_flags = photo_checks.inspect(
+        file_meta, capture_time, time_source, store.project, datetime.fromisoformat(now_qatar()),
+        gps_lat, gps_lon, gps_accuracy_m)
+    vlm_flag = photo_checks.vlm_authenticity_flag(rec["ai"])
+    # These are for the engineer reviewing this photo, so they stay out of the safety officer's queue.
+    flags.extend({**f, "evidence_id": eid, "element_id": element_id}
+                 for f in photo_flags + ([vlm_flag] if vlm_flag else []))
     rec["flags"] = flags
 
     store.evidence[eid] = rec
