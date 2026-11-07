@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, imageUrl } from "../api/client.js";
+import { checklistFor } from "../api/checklist.js";
 import { useStore } from "../store.jsx";
 import Viewer3D from "../components/Viewer3D.jsx";
 import { Icon, Legend, StatusPill, fmtDateTime, num, qar } from "../ui.jsx";
@@ -109,6 +110,8 @@ function BimStrip() {
   );
 }
 
+const TIME_NOTE = { in_app_capture: "SITEWISE camera", exif: "photo EXIF", manual: "entered manually", missing: "no capture time, upload time shown" };
+
 // Money-at-risk ramp: amber -> red by share of the largest single exposure.
 const heat = k => {
   const a = [241, 196, 15], b = [231, 76, 60], c = [146, 20, 12];
@@ -117,7 +120,7 @@ const heat = k => {
 };
 
 export default function Model() {
-  const { modelStatus, elements, evidence, flash } = useStore();
+  const { modelStatus, elements, evidence, flash, openEvidence } = useStore();
   const [sel, setSel] = useState("D-103");
   const [explode, setExplode] = useState(false);
   const [hideL2, setHideL2] = useState(false);
@@ -155,6 +158,23 @@ export default function Model() {
   }));
   const riskiest = Object.entries(risk).sort((a, b) => b[1].at_risk - a[1].at_risk)[0]?.[0];
   const pins = evidence.reduce((a, e) => (e.element_id ? ((a[e.element_id] = (a[e.element_id] || 0) + 1), a) : a), {});
+  // Photo card data per pinned element: the newest photo (evidence is already sorted newest first).
+  const photos = useMemo(() => {
+    const out = {};
+    for (const e of evidence) {
+      if (!e.element_id || out[e.element_id]) continue;
+      const type = elements.find(x => x.element_id === e.element_id)?.type;
+      out[e.element_id] = {
+        evidence_id: e.evidence_id, count: pins[e.element_id],
+        label: e.ai.error ? "AI unavailable" : e.ai.final_label, score: e.ai.error ? 0 : e.ai.top_score,
+        escalatedTo: e.ai.escalated ? e.ai.vlm_name || "VLM" : null,
+        takenAt: fmtDateTime(e.captured_at || e.uploaded_at),
+        timeNote: TIME_NOTE[e.time_source] || "",
+        checklist: checklistFor(e, type),
+      };
+    }
+    return out;
+  }, [evidence, elements]); // eslint-disable-line react-hooks/exhaustive-deps
   const replaying = fi >= 0 && frames[fi];
   const shown = replaying ? frames[fi].status : view === "claim" ? claimStatus : view === "risk" ? riskStatus : modelStatus;
   const onSelect = useCallback(id => setSel(id), []);
@@ -188,7 +208,8 @@ export default function Model() {
       <div className="model-layout">
         <section className="card flush viewer-card">
           <Viewer3D status={shown} selected={sel} onSelect={onSelect} flash={flash} explode={explode} hideL2={hideL2} theme={theme}
-            xray={xray} labels={rooms !== "off"} lang={rooms === "ar" ? "ar" : "en"} pins={pins} />
+            xray={xray} labels={rooms !== "off"} lang={rooms === "ar" ? "ar" : "en"} pins={pins}
+            photos={photos} onOpenEvidence={openEvidence} />
           {replaying && (
             <div className="viewer-legend" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
               <div className="row" style={{ justifyContent: "space-between" }}>

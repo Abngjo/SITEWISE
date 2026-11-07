@@ -15,11 +15,17 @@ const colorOf = s => STATUS[s]?.color || (typeof s === "string" && s.startsWith(
      - Context elements (Tag "CTX-L1-...") are the rest of the building: drawn as translucent glass/ghost, not pickable.
    /rooms.json: IfcSpace labels.  pins: {element_id: evidence photo count}.
    Click an element (or a pin) to fly to it. X-ray ghosts everything except doors and the selection. */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* photos: {element_id: {evidence_id, count, label, score, escalatedTo, takenAt, timeNote, checklist: {items, source}}}
+   Clicking a pin flies to the element and opens a small card beside the pin; onOpenEvidence(evidence_id) opens it
+   on the Evidence page. The card closes with ×, Escape, or a click on empty space. */
 export default function Viewer3D({ status, selected, onSelect, flash, explode, hideL2, theme,
-                                   xray = false, labels = true, pins = {}, lang = "en" }) {
+                                   xray = false, labels = true, pins = {}, lang = "en", photos = {}, onOpenEvidence }) {
   const host = useRef();
   const ctx = useRef({});
   const [state, setState] = useState("loading");
+  const [card, setCard] = useState(null); // element_id whose photo card is open
 
   useEffect(() => {
     const el = host.current;
@@ -153,7 +159,14 @@ export default function Viewer3D({ status, selected, onSelect, flash, explode, h
       return hit?.object.userData.id || null;
     };
     const onDown = e => { down = [e.clientX, e.clientY]; fly = null; };
-    const onUp = e => { if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) { const id = pick(e); if (id) ctx.current.onSelect?.(id); } down = null; };
+    const onUp = e => {
+      if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) {
+        const id = pick(e);
+        if (id) ctx.current.onSelect?.(id);
+        if (id !== ctx.current.card) ctx.current.setCard?.(null); // click elsewhere closes the photo card
+      }
+      down = null;
+    };
     const onMove = e => { const id = pick(e); if (id !== hover) { hover = id; renderer.domElement.style.cursor = id ? "pointer" : "grab"; ctx.current.hover = id; } };
     renderer.domElement.addEventListener("pointerdown", onDown);
     renderer.domElement.addEventListener("pointerup", onUp);
@@ -259,8 +272,10 @@ export default function Viewer3D({ status, selected, onSelect, flash, explode, h
         div.title = `${id}: ${n} evidence photo${n > 1 ? "s" : ""}`;
         div.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 5a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg><span>${n}</span>`;
         div.style.pointerEvents = "auto";
+        div.setAttribute("aria-label", `${id}: ${n} photo${n > 1 ? "s" : ""}. Show photo`);
+        div.setAttribute("aria-expanded", String(c.card === id));
         div.onpointerdown = e => e.stopPropagation();
-        div.onclick = e => { e.stopPropagation(); c.onSelect?.(id); };
+        div.onclick = e => { e.stopPropagation(); c.onSelect?.(id); c.setCard?.(cur => (cur === id ? null : id)); };
         const obj = new CSS2DObject(div);
         obj.position.set((bb.min.x + bb.max.x) / 2, bb.max.y + 0.35, (bb.min.z + bb.max.z) / 2);
         obj.center.set(0.5, 1);
@@ -269,7 +284,50 @@ export default function Viewer3D({ status, selected, onSelect, flash, explode, h
       }
     };
     c.buildPins();
-  }, [pins, selected, state]);
+  }, [pins, selected, state, card]);
+
+  // ---- photo card beside the open pin
+  useEffect(() => {
+    const c = ctx.current;
+    c.card = card; c.setCard = setCard; c.onOpenEvidence = onOpenEvidence;
+    c.cardObj?.element.remove(); c.cardObj?.parent?.remove(c.cardObj); c.cardObj = null;
+    const m = c.meshes?.[card], p = photos[card];
+    if (!m || !p) return;
+    const bb = m.geometry.boundingBox;
+    const mark = { yes: "✓", no: "✗", unknown: "?" };
+    const div = document.createElement("div");
+    div.className = "pin-card";
+    div.setAttribute("role", "dialog");
+    div.setAttribute("aria-label", `Photo for ${card}`);
+    div.style.pointerEvents = "auto";
+    div.innerHTML = `
+      <img src="/api/evidence/${encodeURIComponent(p.evidence_id)}/image" alt="Site photo ${esc(p.evidence_id)} for ${esc(card)}">
+      <div class="pc-body">
+        <div class="pc-top"><b>${esc(card)}</b><span>${esc(p.evidence_id)}${p.count > 1 ? ` · ${p.count} photos` : ""}</span>
+          <button class="pc-x" aria-label="Close">×</button></div>
+        <div class="pc-row">AI: <b>${esc(p.label || "no result")}</b>${p.score ? ` ${Math.round(p.score * 100)}%` : ""}${p.escalatedTo ? ` · checked by ${esc(p.escalatedTo)}` : ""}</div>
+        <div class="pc-row pc-muted">Taken ${esc(p.takenAt)}${p.timeNote ? ` · ${esc(p.timeNote)}` : ""}</div>
+        ${p.checklist ? `<div class="pc-check">${p.checklist.items.map(i => `<span class="ck ck-${i.state}">${esc(i.name)} ${mark[i.state]}</span>`).join("")}${p.checklist.source === "preview" ? `<span class="pc-preview" title="Derived from the VLM completion verdict until the per-component checklist ships">preview</span>` : ""}</div>` : ""}
+        <button class="pc-open">Open in Evidence →</button>
+      </div>`;
+    div.onpointerdown = e => e.stopPropagation();
+    div.onwheel = e => e.stopPropagation();
+    div.querySelector(".pc-x").onclick = e => { e.stopPropagation(); setCard(null); };
+    div.querySelector(".pc-open").onclick = e => { e.stopPropagation(); c.onOpenEvidence?.(p.evidence_id); };
+    const obj = new CSS2DObject(div);
+    obj.position.set((bb.min.x + bb.max.x) / 2, bb.max.y + 0.35, (bb.min.z + bb.max.z) / 2);
+    obj.center.set(-0.08, 1.05); // to the right of the pin
+    m.add(obj);
+    c.cardObj = obj;
+    div.querySelector(".pc-open").focus({ preventScroll: true });
+  }, [card, photos, state, onOpenEvidence]);
+
+  useEffect(() => {
+    if (!card) return;
+    const k = e => e.key === "Escape" && setCard(null);
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [card]);
 
   // ---- labels language + theme
   useEffect(() => {

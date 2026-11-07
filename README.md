@@ -17,6 +17,10 @@ Checks a contractor's progress claim against photo evidence, the BIM model, BOQ 
 
 > All project data in this Space is **fictional sample data** (Al Wakra Community Clinic, Package B).
 
+![BIM page: orbit the building, switch to Money at risk, fly to the largest exposure](docs/bim-demo.gif)
+
+*BIM page: orbit the IFC building, switch to **Money at risk**, then fly to the element with the largest unsupported claim.*
+
 ## Quick start (local)
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt

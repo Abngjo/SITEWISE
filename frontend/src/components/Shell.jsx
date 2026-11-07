@@ -3,6 +3,7 @@ import { useStore } from "../store.jsx";
 import { Icon } from "../ui.jsx";
 import DynamicIsland from "./DynamicIsland.jsx";
 import ThemeSwitch from "./ThemeSwitch.jsx";
+import Toasts from "./Toasts.jsx";
 
 export const NAV = [
   ["payment", "Overview / Payment", "payment"],
@@ -78,6 +79,7 @@ export default function Shell({ children, theme, setTheme, user, onSignOut }) {
         </header>
         <main className="content" id="main">{children}</main>
       </div>
+      <Toasts />
     </div>
   );
 }

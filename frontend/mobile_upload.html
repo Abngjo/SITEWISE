@@ -43,6 +43,8 @@
   .err { color: var(--ink); background: color-mix(in srgb, var(--bad) 14%, transparent); padding: 10px 12px; border-radius: 10px; font-size: .9rem; display: none; }
   .err.show { display: block; }
   .foot { font-size: .8rem; color: var(--ink-3); text-align: center; }
+  .ck b { font-weight: 700; } .ck-yes b { color: var(--ok); } .ck-no b { color: var(--bad); } .ck-unknown b { color: var(--unc); }
+  .pv { font-style: normal; font-size: .72rem; color: var(--ink-3); border: 1px dashed var(--line); border-radius: 4px; padding: 0 5px; }
 </style>
 </head>
 <body>
@@ -66,7 +68,23 @@
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 let file = null;
+// Per-component checklist ("Frame ✓ · Leaf ✗ · Handle ?"). Uses ai.checklist / ai.vlm.checklist when Person A's
+// field ships; until then a preview from the VLM completion verdict (same rules as src/api/checklist.js).
+const TYPES = {};
+const COMP = { door: ["Frame", "Leaf", "Handle"], wall: ["Blockwork", "Mortar joints", "Plaster"], ceiling: ["Grid", "Boards", "Finish"], slab: ["Formwork", "Rebar", "Concrete"] };
+const MK = { yes: "✓", no: "✗", unknown: "?" }, LBL = { yes: "present", no: "missing", unknown: "unclear" };
+const st = v => v === true || /^(yes|present|installed|done|complete|ok|true)$/i.test(v) ? "yes" : v === false || /^(no|missing|absent|not_installed|not_started|false)$/i.test(v) ? "no" : "unknown";
+const ttl = s => String(s).replace(/[_-]+/g, " ").replace(/^\w/, c => c.toUpperCase());
+function checklist(a, type) {
+  const raw = a.checklist ?? (a.vlm && a.vlm.checklist);
+  if (Array.isArray(raw) && raw.length) return { items: raw.map(x => ({ name: ttl(x.component ?? x.name ?? x.part ?? "?"), state: st(x.status ?? x.state ?? x.present) })) };
+  if (raw && typeof raw === "object" && Object.keys(raw).length) return { items: Object.entries(raw).map(([k, v]) => ({ name: ttl(k), state: st(v) })) };
+  const c = a.completion ?? (a.vlm && a.vlm.completion);
+  return { preview: true, items: (COMP[type] || ["Element"]).map((name, i) => ({ name,
+    state: c === "complete" ? "yes" : c === "not_started" ? "no" : c === "partial" ? (i === 0 ? "yes" : i === 1 ? "no" : "unknown") : "unknown" })) };
+}
 fetch("/api/elements").then(r => r.json()).then(es => {
+  es.forEach(e => { TYPES[e.element_id] = e.type; });
   $("el").innerHTML = es.map(e => `<option value="${esc(e.element_id)}" ${e.element_id === "D-103" ? "selected" : ""}>${esc(e.element_id)} - ${esc(e.name)}</option>`).join("");
 }).catch(() => { $("err").textContent = "Can't reach SITEWISE. Check you're on the same wifi as the demo laptop."; $("err").classList.add("show"); });
 $("ph").addEventListener("change", e => {
@@ -94,6 +112,10 @@ $("go").addEventListener("click", async () => {
     const WHY = { completion_check: "Claimed complete: checking completion", label_mismatch: "Photo doesn't match the element", low_confidence: "Small model unsure" };
     if (!a.error && a.escalation_reason) h += `<div class="row"><span>Why</span><span>${esc(WHY[a.escalation_reason] || a.escalation_reason)}</span></div>`;
     if (a.completion) h += `<div class="row"><span>Completion</span><b>${esc(String(a.completion).replace("_", " "))}</b></div>`;
+    if (!a.error) {
+      const ck = checklist(a, TYPES[$("el").value]);
+      h += `<div class="row"><span>Components</span><span class="ck">${ck.items.map(i => `<span class="ck-${i.state}" aria-label="${esc(i.name)}: ${LBL[i.state]}">${esc(i.name)} <b>${MK[i.state]}</b></span>`).join(" · ")}${ck.preview ? ` <em class="pv">preview</em>` : ""}</span></div>`;
+    }
     if (a.vlm && a.vlm.reason) h += `<div class="row"><span>Reason</span><span>${esc(a.vlm.reason)}</span></div>`;
     if (a.vlm_error) h += `<div class="warn">Big model unavailable: sent to engineer review.</div>`;
     if (!a.error) h += `<div class="row"><span>Matches element</span><span>${a.matches_declared_element ? "Yes" : "No"}</span></div>`;
