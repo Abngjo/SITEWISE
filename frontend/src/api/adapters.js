@@ -99,6 +99,17 @@ export const modelStatus = m => {
   return out;
 };
 
+// Friendly name for a Hub model id: "google/gemma-4-31b-it" -> "Gemma 4", "Qwen/Qwen2.5-VL-7B-Instruct" -> "Qwen2.5-VL".
+export const modelName = id => {
+  if (!id) return null;
+  const s = String(id);
+  const g = /gemma[-_ ]?(\d+(?:\.\d+)?)/i.exec(s);
+  if (g) return `Gemma ${g[1]}`;
+  if (/qwen2\.5-vl/i.test(s)) return "Qwen2.5-VL";
+  if (/siglip/i.test(s)) return "SigLIP2";
+  return s.split("/").pop();
+};
+
 export const evidence = e => {
   const ai = e.ai || {};
   const obs = ai.observations || [];
@@ -121,6 +132,10 @@ export const evidence = e => {
       requires_review: ai.requires_review !== false,
       latency_ms: Math.round((ai.latency_s || 0) * 1000),
       error: ai.error || null,
+      vlm_model: ai.escalation_model_id || ai.vlm?.model || null,
+      vlm_name: modelName(ai.escalation_model_id || ai.vlm?.model),
+      completion: ai.completion ?? ai.vlm?.completion ?? null,
+      checklist: ai.checklist ?? ai.vlm?.checklist ?? null, // Person A's per-component field (see checklist.js)
     },
     duplicates: (e.duplicates || []).map(d => ({
       evidence_id: d.evidence_id,

@@ -18,6 +18,9 @@ export function StoreProvider({ children }) {
   const [flash, setFlash] = useState({});   // {elementId: status} recently changed, for the 3D flash
   const flashTimer = useRef();
   const knownEvidence = useRef(null);
+  const [toasts, setToasts] = useState([]);
+  const [lastSync, setLastSync] = useState(Date.now());
+  const [focusEvidence, setFocusEvidence] = useState(null); // {id, at}
 
   const loadAll = useCallback(async () => {
     setError(null);
@@ -36,15 +39,54 @@ export function StoreProvider({ children }) {
     return () => clearInterval(id);
   }, []);
 
+  const flashFor = useCallback((ids, ms) => {
+    setFlash(Object.fromEntries(ids.map(id => [id, true])));
+    clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlash({}), ms);
+  }, []);
+  const pushToast = useCallback(t => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setToasts(list => [...list.slice(-2), { ...t, id }]);
+    setTimeout(() => setToasts(list => list.filter(x => x.id !== id)), 6000);
+  }, []);
+  const dismissToast = useCallback(id => setToasts(list => list.filter(x => x.id !== id)), []);
+
   // B8: picks up phone uploads. Evidence can change element status, payment and schedule, so refresh those too.
-  const refreshEvidence = useCallback(async () => {
+  // A new photo flashes its element in 3D and raises a toast, on whichever page is open.
+  const refreshEvidence = useCallback(async ({ announce = true } = {}) => {
     const [ev, m, e, a, s] = await Promise.all([api.evidence(), api.modelStatus(), api.elements(), api.audit(), api.schedule()]);
     const known = knownEvidence.current;
-    const fresh = known ? ev.find(x => !known.has(x.evidence_id)) : null;
+    const fresh = known ? ev.filter(x => !known.has(x.evidence_id)) : [];
     knownEvidence.current = new Set(ev.map(x => x.evidence_id));
-    if (fresh) setEvent({ kind: "upload", id: fresh.element_id, text: `New photo for ${fresh.element_id || "unassigned"}`,
-      sub: fresh.ai.error ? "AI unavailable, review needed" : fresh.ai.escalated ? `Escalated to ${fresh.ai.vlm_model?.includes("Qwen") ? "Qwen2.5-VL" : "Gemma 4"}` : `SigLIP2 · ${fresh.ai.final_label}`, at: Date.now() });
-    setEvidence(ev); setModelStatus(m); setElements(e); setAudit(a); setSchedule(s);
+    setEvidence(ev); setModelStatus(m); setElements(e); setAudit(a); setSchedule(s); setLastSync(Date.now());
+    if (fresh.length && announce) {
+      const f = fresh[0];
+      const how = f.ai.error ? "AI unavailable, review needed"
+        : f.ai.escalated ? `escalated to ${f.ai.vlm_name || "the VLM"}`
+        : `${f.ai.final_label} (SigLIP2)`;
+      setEvent({ kind: "upload", id: f.element_id, text: `New photo for ${f.element_id || "unassigned"}`, sub: how, at: Date.now() });
+      pushToast({ kind: "upload", element_id: f.element_id, evidence_id: f.evidence_id, text: `${f.element_id || "Unassigned"}: new photo, ${how}`, warn: !!f.ai.error });
+      flashFor(fresh.map(x => x.element_id).filter(Boolean), 4000);
+    }
+  }, [pushToast, flashFor]);
+
+  // Cheap poll: only the evidence list. Full refresh happens when something new arrives.
+  useEffect(() => {
+    const id = setInterval(async () => {
+      try {
+        const ev = await api.evidence();
+        setLastSync(Date.now());
+        const known = knownEvidence.current;
+        if (known && ev.some(x => !known.has(x.evidence_id))) await refreshEvidence();
+      } catch { /* offline: the health check reports it */ }
+    }, 4000);
+    return () => clearInterval(id);
+  }, [refreshEvidence]);
+
+  // Open a specific photo on the Evidence page (used by the 3D photo cards and toasts).
+  const openEvidence = useCallback(evidenceId => {
+    setFocusEvidence({ id: evidenceId, at: Date.now() });
+    if (location.hash !== "#evidence") location.hash = "evidence";
   }, []);
 
   // B4 demo moment: one review response updates 3D, payment and schedule together.
@@ -60,17 +102,18 @@ export function StoreProvider({ children }) {
     const verb = decision === "approve" ? "approved" : decision === "partial" ? "partly approved" : "rejected";
     setEvent({ kind: "review", id, decision, delta, text: `${id} ${verb}`,
       sub: delta ? `Supported ${delta > 0 ? "+" : "−"}QAR ${Math.abs(delta).toLocaleString("en-US")}` : "Supported unchanged", at: Date.now() });
-    setFlash({ [id]: r.modelStatus?.[id] });
-    clearTimeout(flashTimer.current);
-    flashTimer.current = setTimeout(() => setFlash({}), 2400);
+    flashFor([id], 2400);
     return r;
-  }, [audit]);
+  }, [audit, flashFor]);
 
+  // Desktop upload: the uploader already sees the result inline, so mark it known and skip the toast.
   const upload = useCallback(async (file, elementId) => {
     const ev = await api.upload(file, elementId);
-    await refreshEvidence();
+    knownEvidence.current?.add(ev.evidence_id);
+    await refreshEvidence({ announce: false });
+    flashFor([elementId], 2400);
     return ev;
-  }, [refreshEvidence]);
+  }, [refreshEvidence, flashFor]);
 
   const reset = useCallback(async () => {
     await api.reset();
@@ -85,7 +128,9 @@ export function StoreProvider({ children }) {
   const value = useMemo(() => ({
     project, audit, modelStatus, elements, boq, schedule, evidence, health, error, event, flash, pendingReview,
     needsReview, loadAll, refreshEvidence, submitReview, upload, reset, setSchedule,
-  }), [project, audit, modelStatus, elements, boq, schedule, evidence, health, error, event, flash, pendingReview, needsReview, loadAll, refreshEvidence, submitReview, upload, reset]);
+    toasts, dismissToast, lastSync, focusEvidence, openEvidence,
+  }), [project, audit, modelStatus, elements, boq, schedule, evidence, health, error, event, flash, pendingReview, needsReview, loadAll, refreshEvidence, submitReview, upload, reset,
+    toasts, dismissToast, lastSync, focusEvidence, openEvidence]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

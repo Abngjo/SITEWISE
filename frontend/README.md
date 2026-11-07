@@ -28,6 +28,13 @@ Notes:
 - UI decisions map to the contract: Approve → `supported`, Partial → `partial` + `supported_qty`, Reject → `rejected`.
 - Hidden reset before rehearsals: user menu → Reset demo state, or Shift + Alt + R.
 - The 3D viewer frames whatever `/model.glb` contains and looks from the side where D-103 sits.
+- BIM photo cards: clicking a blue pin flies to the element and opens a card with the newest photo, AI label, time taken,
+  checklist and "Open in Evidence". Close with ×, Escape, or a click on empty space.
+- Live uploads: the store polls `/api/evidence` every 4 s on every page. A new photo flashes its element in 3D and shows a
+  toast such as "D-103: new photo, escalated to Gemma 4" (model name from `ai.escalation_model_id`).
+- Component checklist (✓ / ✗ / ?): `src/api/checklist.js` reads Person A's `ai.checklist` (or `ai.vlm.checklist`) as a list
+  `[{component, status}]` or a map `{frame: true, leaf: false, handle: null}`. Until that field exists it shows a
+  **Preview** derived from the VLM `completion` verdict. `/m` uses the same rules.
 
 Pages (priority order): Payment audit → Evidence review (with side-by-side reuse) → 3D model → Schedule → Report (EN/AR, `dir="rtl"`) → Safety → AI costs.
 

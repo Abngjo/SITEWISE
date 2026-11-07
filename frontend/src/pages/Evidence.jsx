@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { imageUrl } from "../api/client.js";
 import { EXPECTED_LABEL, FLAG_LABEL } from "../api/adapters.js";
+import { MARK, STATE_LABEL, checklistFor } from "../api/checklist.js";
 import { useStore } from "../store.jsx";
 import Viewer3D from "../components/Viewer3D.jsx";
 import { useResolvedTheme } from "./Model.jsx";
@@ -12,6 +13,24 @@ const TIME_SOURCE = {
   manual: ["Entered manually", true],
   missing: ["No capture time: upload time shown", true],
 };
+// Per-component checklist, e.g. "Frame ✓ · Leaf ✗ · Handle ?". Preview until Person A's field ships (see api/checklist.js).
+export function Checklist({ ev, type, compact }) {
+  const { items, source } = checklistFor(ev, type);
+  return (
+    <div className={`checklist ${compact ? "compact" : ""}`}>
+      {!compact && <span className="lbl">Component checklist</span>}
+      <div className="ck-row" role="list" aria-label="Component checklist">
+        {items.map((i, n) => (
+          <span key={i.name} role="listitem" className={`ck ck-${i.state}`} title={`${i.name}: ${STATE_LABEL[i.state]}`}>
+            {n > 0 && <i className="ck-sep" aria-hidden="true">·</i>}{i.name} <b aria-hidden="true">{MARK[i.state]}</b><span className="sr">{STATE_LABEL[i.state]}</span>
+          </span>
+        ))}
+        {source === "preview" && <span className="tag" title="Derived from the VLM's completion verdict until the per-component checklist ships">Preview</span>}
+      </div>
+    </div>
+  );
+}
+
 const shownTime = e => (e.captured_at ? fmtDateTime(e.captured_at) : `uploaded ${fmtDateTime(e.uploaded_at)}`);
 const LOCATION_SOURCE = { photo_gps: "From the photo's GPS", device_at_upload: "Phone's location at upload" };
 const DATE_PLACE_FLAGS = ["no_camera_metadata", "photo_predates_period", "photo_date_in_future", "capture_time_mismatch", "off_site"];
@@ -49,7 +68,7 @@ function Upload({ elements, defaultElement, onUploaded }) {
       const ev = await upload(file, el);
       setMsg({ text: ev.ai.error
         ? `${ev.evidence_id} saved. The AI was unavailable, so the line needs engineer review.`
-        : `${ev.evidence_id} analysed: ${ev.ai.final_label} ${(ev.ai.top_score * 100).toFixed(0)}%${ev.ai.escalated ? ", escalated to " + (ev.ai.vlm_model?.includes("Qwen") ? "Qwen2.5-VL" : "Gemma 4") : ""}${ev.duplicates.length ? ". Possible reuse found." : "."}` });
+        : `${ev.evidence_id} analysed: ${ev.ai.final_label} ${(ev.ai.top_score * 100).toFixed(0)}%${ev.ai.escalated ? ", escalated to " + (ev.ai.vlm_name || "the VLM") : ""}${ev.duplicates.length ? ". Possible reuse found." : "."}` });
       setFile(null); onUploaded(ev);
     } catch (e) {
       setMsg({ bad: true, text: `${e.message}. The photo was not saved; try again.` });
@@ -120,14 +139,16 @@ function ReviewControls({ el, evidenceId }) {
 }
 
 export default function Evidence() {
-  const { evidence, elements, modelStatus, refreshEvidence, audit, schedule, flash, needsReview } = useStore();
+  const { evidence, elements, modelStatus, audit, schedule, flash, needsReview, lastSync, focusEvidence } = useStore();
   const [filter, setFilter] = useState("all");
   const [sel, setSel] = useState(null); // {kind:"ev"|"el", id}
   const theme = useResolvedTheme();
-  const [updated, setUpdated] = useState(Date.now());
 
-  // B8: new phone uploads appear without a reload.
-  useEffect(() => { const id = setInterval(() => refreshEvidence().then(() => setUpdated(Date.now())).catch(() => {}), 4000); return () => clearInterval(id); }, [refreshEvidence]);
+  // B8: new phone uploads appear without a reload (the store polls every 4 s on every page).
+  // A 3D photo card or a toast can ask for a specific photo.
+  useEffect(() => {
+    if (focusEvidence?.id) { setFilter("all"); setSel({ kind: "ev", id: focusEvidence.id }); }
+  }, [focusEvidence]);
 
   const FILTERS = { all: () => true, review: needsReview, reuse: e => e.duplicates.length > 0, escalated: e => e.ai.escalated };
   const list = useMemo(() => evidence.filter(FILTERS[filter]), [evidence, filter, needsReview]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -156,7 +177,7 @@ export default function Evidence() {
     <>
       <div className="page-head">
         <div><h1>Evidence review</h1><p className="muted">Newest first. AI results are observations; your decision is what certifies.</p></div>
-        <span className="muted small live-dot">Live · updated {new Date(updated).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+        <span className="muted small live-dot">Live · updated {new Date(lastSync).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
       </div>
       <div className="ev-layout">
         <section className="card flush ev-list">
@@ -181,6 +202,7 @@ export default function Evidence() {
                       {e.flags.some(f => DATE_PLACE_FLAGS.includes(f.type)) && <span className="tag warn">Check date or place</span>}
                       {e.flags.some(f => f.type === "authenticity_review") && <span className="tag warn">Check authenticity</span>}
                     </span>
+                    {!e.ai.error && <Checklist compact ev={e} type={elements.find(x => x.element_id === e.element_id)?.type} />}
                   </span>
                 </button>
               </li>
@@ -241,8 +263,9 @@ export default function Evidence() {
                     {cur.photo_meta && <PhotoMeta meta={cur.photo_meta} />}
                   </div>
                 </div>
+                {!cur.ai.error && <Checklist ev={cur} type={el.type} />}
                 {cur.ai.escalated && cur.ai.vlm && (
-                  <div className="vlm"><span className="tag accent">Escalated to VLM</span><p>“{cur.ai.vlm.reason}”</p><span className="small muted">{cur.ai.vlm.model || "Gemma 4"} via Hugging Face Inference Providers</span>{cur.ai.vlm.completion && <span className="small">Completion: <b>{words(cur.ai.vlm.completion)}</b>{cur.ai.completion_pct != null && ` (about ${cur.ai.completion_pct}%)`}{cur.ai.vlm.phase && <> · Stage of work: <b>{words(cur.ai.vlm.phase)}</b></>}. An observation only: it doesn't change payment.</span>}</div>
+                  <div className="vlm"><span className="tag accent">Escalated to {cur.ai.vlm_name || "VLM"}</span><p>“{cur.ai.vlm.reason}”</p><span className="small muted">{cur.ai.vlm_model || "VLM"} via Hugging Face Inference Providers</span>{cur.ai.completion && <span className="small">Completion: <b>{words(cur.ai.completion)}</b>{cur.ai.completion_pct != null && ` (about ${cur.ai.completion_pct}%)`}{cur.ai.vlm.phase && <> · Stage of work: <b>{words(cur.ai.vlm.phase)}</b></>}. An observation only: it doesn't change payment.</span>}</div>
                 )}
                 {cur.flags.length > 0 && (
                   <ul className="flag-list">{cur.flags.map((f, i) => <li key={i}><span className="tag warn">{f.type === "summer_working_hours" && <Icon name="sun" size={12} />}{FLAG_LABEL[f.type] || f.type}</span>{f.message}</li>)}</ul>
