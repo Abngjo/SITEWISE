@@ -27,6 +27,7 @@ def build(project: dict, audit: dict, sched: dict, safety: list[dict], dup_flags
             f"صور يُحتمل إعادة استخدامها من شهادات سابقة: {len(dup_flags)}",
             f"ملاحظات السلامة والامتثال بانتظار المراجعة: {len(safety)}",
             f"موعد التسليم المتوقع: {sched['forecast_handover']} (التأخير مقارنة بالخطة الأساسية: {d} يوم)",
+            f"التعرض المقدر لغرامات التأخير: {qar(sched.get('delay_exposure_qar', 0))} (افتراض تجريبي)",
             f"تكلفة معالجة الذكاء الاصطناعي التقديرية: {costs['est_total_cost_usd']} دولار لعدد {costs['photos_processed']} صورة",
             "هذا التقرير توصية فقط، ويبقى قرار الاعتماد للمهندس أو مساح الكميات المختص. بيانات تجريبية.",
         ]
@@ -41,8 +42,9 @@ def build(project: dict, audit: dict, sched: dict, safety: list[dict], dup_flags
             f"Possible reused photos from earlier certificates: {len(dup_flags)}",
             f"Safety and compliance flags awaiting review: {len(safety)}",
             f"Forecast handover: {sched['forecast_handover']} (variance vs baseline: {d} days)",
+            f"Estimated delay damages exposure: {qar(sched.get('delay_exposure_qar', 0))} (sample assumption)",
             f"Estimated AI processing cost: ${costs['est_total_cost_usd']} for {costs['photos_processed']} photos",
             "Recommendation only. Certification remains with the qualified engineer / QS. Sample data.",
         ]
     return {"lang": lang, "direction": "rtl" if lang == "ar" else "ltr", "lines": lines,
-            "figures": {**t, "handover_delay_days": d}}
+            "figures": {**t, "handover_delay_days": d, "delay_exposure_qar": sched.get("delay_exposure_qar", 0)}}

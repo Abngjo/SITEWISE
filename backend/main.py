@@ -28,7 +28,7 @@ except ImportError:
     pass
 
 from ai import duplicates, inference  # noqa: E402
-from backend.engines import compliance, letter, payment, report, schedule  # noqa: E402
+from backend.engines import ask as ask_engine, bim, compliance, letter, payment, report, schedule  # noqa: E402
 from backend.store import DATA_DIR, store  # noqa: E402
 
 QATAR_TZ = ZoneInfo("Asia/Qatar")  # server runs in UTC; all timestamps shown in Doha time
@@ -116,6 +116,53 @@ def model_status():
     return {eid: store.element_status(eid) for eid in store.elements}
 
 
+@app.get("/api/model/timeline")
+def model_timeline():
+    """Frames for the 3D replay: what was verified at each certificate, then this month's claim, then now."""
+    certs = store.project.get("certificates", [])
+    current = store.project["current_certificate"]
+    frames = []
+    for c in certs:
+        if c["no"] == current:
+            continue
+        end = c["period_end"]
+        st = {}
+        for eid in store.elements:
+            r = store.reviews.get(eid)
+            ok = r and r["decision"] == "supported" and str(r.get("timestamp", ""))[:10] <= end
+            st[eid] = "supported" if ok else "no_evidence"
+        n = sum(v == "supported" for v in st.values())
+        frames.append({"key": c["no"], "label": f"{c['no']} certified", "date": end, "status": st,
+                       "caption": f"{n} of {len(st)} elements verified and paid by {end}"})
+    cv = claim_view()
+    frames.append({"key": f"{current}-claim", "label": f"{current} contractor's claim",
+                   "date": store.project.get("as_of_date"),
+                   "status": {k: ("no_evidence" if v == "not_claimed" else "supported") for k, v in cv.items()},
+                   "caption": f"Contractor claims {sum(v != 'not_claimed' for v in cv.values())} of {len(cv)} elements done"})
+    now = model_status()
+    frames.append({"key": "verified-now", "label": "Verified by evidence (now)", "date": store.project.get("as_of_date"),
+                   "status": now, "caption": f"Evidence supports {sum(v == 'supported' for v in now.values())} of {len(now)}"})
+    return frames
+
+
+@app.get("/api/model/claim-view")
+def claim_view():
+    """For the 3D 'contractor's claim' toggle: what the contractor says is done this certificate.
+    claimed = claimed in the current certificate; certified = already paid in earlier certificates."""
+    claimed = store.claimed_ids()
+    prev = {c["boq_item_id"]: float(c["previous_certified_qty"]) for c in store.claims}
+    out = {}
+    for eid, e in store.elements.items():
+        r = store.reviews.get(eid)
+        if eid in claimed:
+            out[eid] = "claimed"
+        elif r and r["decision"] == "supported" and prev.get(e["boq_item_id"], 0) > 0:
+            out[eid] = "certified"
+        else:
+            out[eid] = "not_claimed"
+    return out
+
+
 @app.get("/api/boq")
 def get_boq():
     return list(store.boq.values())
@@ -144,9 +191,14 @@ def payments_audit():
 @app.get("/api/schedule/forecast")
 def schedule_forecast(delay_task: str | None = None, delay_days: float = 0):
     extra = {delay_task: delay_days} if delay_task else None
-    return schedule.forecast(store.tasks, date.fromisoformat(store.project["start_date"]),
-                             date.fromisoformat(store.project["as_of_date"]),
-                             store.task_progress(), extra)
+    fc = schedule.forecast(store.tasks, date.fromisoformat(store.project["start_date"]),
+                           date.fromisoformat(store.project["as_of_date"]),
+                           store.task_progress(), extra)
+    rate = float(store.project.get("delay_damages_per_day_qar", 0))
+    fc["delay_damages_per_day_qar"] = rate
+    fc["delay_exposure_qar"] = round(max(0, fc["handover_delay_days"]) * rate, 2)
+    fc["delay_damages_note"] = store.project.get("delay_damages_note", "")
+    return fc
 
 
 @app.get("/api/overview")
@@ -162,6 +214,7 @@ def overview():
         "baseline_handover": sc["baseline_handover"],
         "forecast_handover": sc["forecast_handover"],
         "handover_delay_days": sc["handover_delay_days"],
+        "delay_exposure_qar": sc["delay_exposure_qar"],
         "counts": {
             "photos_this_certificate": len(ev),
             "possible_reuse": sum(1 for e in ev if e.get("duplicates")),
@@ -188,6 +241,68 @@ def get_report(lang: str = "en"):
     dup_flags = [e for e in store.evidence.values() if e.get("duplicates")]
     return report.build(store.project, payments_audit(), schedule_forecast(), store.safety,
                         dup_flags, inference.cost_summary(), lang)
+
+
+# ------------------------------------ BIM -------------------------------------
+_BIM_CACHE: dict = {}
+
+
+def _bim_summary() -> dict:
+    if "default" not in _BIM_CACHE:
+        try:
+            _BIM_CACHE["default"] = bim.parse(DATA_DIR / "project.ifc", store.elements)
+        except Exception as e:
+            return {"error": f"IFC parse failed: {e}"}
+    return _BIM_CACHE["default"]
+
+
+@app.get("/api/bim/summary")
+def bim_summary():
+    """Parsed live from data/sample_project/project.ifc with IfcOpenShell."""
+    s = _bim_summary()
+    return {k: v for k, v in s.items() if k != "elements"}
+
+
+@app.get("/api/bim/elements")
+def bim_elements():
+    return _bim_summary().get("elements", [])
+
+
+@app.get("/api/bim/elements/{element_id}")
+def bim_element(element_id: str):
+    for r in _bim_summary().get("elements", []):
+        if r["element_id"] == element_id:
+            return {**r, "status": store.element_status(element_id),
+                    "record": store.elements.get(element_id)}
+    raise HTTPException(404)
+
+
+@app.get("/api/bim/export")
+def bim_export():
+    """Download the BIM with SITEWISE evidence written into each element (Pset 'SITEWISE_Evidence')."""
+    cert = store.project.get("current_certificate", "IPC")
+    out = UPLOAD_DIR / f"sitewise_as_verified_{cert}.ifc"
+    try:
+        bim.export_as_verified(DATA_DIR / "project.ifc", out, store, payments_audit())
+    except Exception as e:
+        raise HTTPException(500, f"IFC export failed: {e}")
+    return FileResponse(out, media_type="application/x-step", filename=out.name)
+
+
+@app.post("/api/bim/import")
+async def bim_import(file: UploadFile = File(...)):
+    """Upload any IFC: SITEWISE extracts its elements and reports how they map to BOQ + schedule.
+    (Demo: does not replace the project model.)"""
+    b = await file.read()
+    if not b.startswith(b"ISO-10303-21"):
+        raise HTTPException(400, "Not an IFC (STEP) file")
+    tmp = UPLOAD_DIR / f"import-{uuid.uuid4().hex[:6]}.ifc"
+    tmp.write_bytes(b)
+    try:
+        s = bim.parse(tmp, store.elements)
+    except Exception as e:
+        raise HTTPException(400, f"IFC parse failed: {e}")
+    return {k: v for k, v in s.items() if k != "elements"} | {"elements_preview": s["elements"][:30]}
 
 
 @app.get("/api/audit-letter")
@@ -252,6 +367,20 @@ async def upload_evidence(
     store.evidence[eid] = rec
     store.save()
     return {k: v for k, v in rec.items() if k != "embedding"}
+
+
+class Question(BaseModel):
+    question: str
+    lang: str = "en"
+
+
+@app.post("/api/ask")
+def ask_sitewise(q: Question):
+    """Grounded Q&A: Gemma answers from computed project data; every figure is verified before display."""
+    if not q.question.strip():
+        raise HTTPException(400, "empty question")
+    ctx = ask_engine.context(store, payments_audit(), schedule_forecast(), overview())
+    return ask_engine.ask(q.question.strip()[:500], ctx, "ar" if q.lang == "ar" else "en")
 
 
 class Review(BaseModel):

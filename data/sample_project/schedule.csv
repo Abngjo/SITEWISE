@@ -1,6 +1,6 @@
 task_id,name,name_ar,duration_days,predecessors,calendar,manual_progress
-T-100,Structure L1,الهيكل - الطابق الأول,30,,outdoor,
-T-200,Structure L2,الهيكل - الطابق الثاني,30,T-100,outdoor,
+T-100,Structure L1,الهيكل - الطابق الأول,22,,outdoor,
+T-200,Structure L2,الهيكل - الطابق الثاني,22,T-100,outdoor,
 T-110,Blockwork L1,أعمال الطابوق - الطابق الأول,24,T-100,indoor,
 T-210,Blockwork L2,أعمال الطابوق - الطابق الثاني,24,T-200;T-110,indoor,
 T-120,Doors L1,الأبواب - الطابق الأول,12,T-110,indoor,

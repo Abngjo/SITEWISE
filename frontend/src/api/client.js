@@ -32,6 +32,12 @@ export const api = {
   safety: () => req("/api/safety").then(A.safety),
   aiCosts: () => req("/api/ai/costs").then(A.costs),
   reset: () => req("/api/admin/reset", { method: "POST" }),
+  letter: lang => req(`/api/audit-letter?lang=${lang}`),
+  bimSummary: () => req("/api/bim/summary"),
+  claimView: () => req("/api/model/claim-view"),
+  timeline: () => req("/api/model/timeline"),
+  bimElement: id => req(`/api/bim/elements/${encodeURIComponent(id)}`),
+  bimImport: file => { const fd = new FormData(); fd.append("file", file); return req("/api/bim/import", { method: "POST", body: fd }); },
   upload: (file, elementId) => {
     const fd = new FormData();
     fd.append("file", file);

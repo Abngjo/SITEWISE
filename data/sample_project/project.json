@@ -11,5 +11,25 @@
   "current_certificate": "IPC-04",
   "retention_pct": 10,
   "work_week": "SAT-THU",
-  "sample_data_notice": "All project, contractor, quantity and rate data is fictional sample data for demonstration only."
+  "sample_data_notice": "All project, contractor, quantity and rate data is fictional sample data for demonstration only.",
+  "delay_damages_per_day_qar": 1800,
+  "delay_damages_note": "Sample assumption: 0.1% of contract value per calendar day of handover delay (check the actual contract).",
+  "certificates": [
+    {
+      "no": "IPC-01",
+      "period_end": "2026-07-31"
+    },
+    {
+      "no": "IPC-02",
+      "period_end": "2026-08-31"
+    },
+    {
+      "no": "IPC-03",
+      "period_end": "2026-09-30"
+    },
+    {
+      "no": "IPC-04",
+      "period_end": "2026-10-31"
+    }
+  ]
 }

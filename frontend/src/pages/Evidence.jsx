@@ -220,7 +220,7 @@ export default function Evidence() {
                   </div>
                 </div>
                 {cur.ai.escalated && cur.ai.vlm && (
-                  <div className="vlm"><span className="tag accent">Escalated to VLM</span><p>“{cur.ai.vlm.reason}”</p><span className="small muted">{cur.ai.vlm.model || "Qwen2.5-VL"} via Hugging Face Inference Providers{cur.ai.vlm.completion ? ` · completion: ${cur.ai.vlm.completion}` : ""}</span></div>
+                  <div className="vlm"><span className="tag accent">Escalated to VLM</span><p>“{cur.ai.vlm.reason}”</p><span className="small muted">{cur.ai.vlm.model || "Gemma 4"} via Hugging Face Inference Providers{cur.ai.vlm.completion ? ` · completion: ${cur.ai.vlm.completion}` : ""}</span></div>
                 )}
                 {cur.flags.length > 0 && (
                   <ul className="flag-list">{cur.flags.map((f, i) => <li key={i}><span className="tag warn">{f.type === "summer_working_hours" && <Icon name="sun" size={12} />}{FLAG_LABEL[f.type] || f.type}</span>{f.message}</li>)}</ul>

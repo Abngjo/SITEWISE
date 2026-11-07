@@ -42,6 +42,10 @@ export default function Schedule() {
         <div className={`delay-big ${s.delay_days > 0 ? "late" : ""}`}>
           <span className="lbl">Delay to handover</span>
           <b>{s.delay_days > 0 ? "+" : ""}{s.delay_days}<small> days</small></b>
+          {s.delay_exposure_qar > 0 && (
+            <span className="lbl" title={s.delay_damages_note}>≈ QAR {Number(s.delay_exposure_qar).toLocaleString("en-US")} delay damages exposure
+              <br /><span className="small muted">QAR {Number(s.delay_damages_per_day_qar).toLocaleString("en-US")}/day · sample assumption</span></span>
+          )}
         </div>
         <div className="card dates">
           <div><span className="lbl">Baseline handover</span><b>{fmtDate(s.baseline_handover)}</b></div>
@@ -66,7 +70,7 @@ export default function Schedule() {
           {whatIf?.what_if && (
             <p className="small">
               Delaying <b>{whatIf.what_if.task_id}</b> by {whatIf.what_if.days} days {whatIf.forecast_handover !== live.forecast_handover
-                ? <>moves handover to <b className="neg">{fmtDate(whatIf.forecast_handover)}</b>.</>
+                ? <>moves handover to <b className="neg">{fmtDate(whatIf.forecast_handover)}</b>{whatIf.delay_exposure_qar > (live.delay_exposure_qar || 0) && <> and adds <b className="neg">QAR {Number(whatIf.delay_exposure_qar - (live.delay_exposure_qar || 0)).toLocaleString("en-US")}</b> of delay exposure</>}.</>
                 : <>does not move handover: the task has enough float.</>}
             </p>
           )}

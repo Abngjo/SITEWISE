@@ -7,9 +7,9 @@ import ThemeSwitch from "./ThemeSwitch.jsx";
 export const NAV = [
   ["payment", "Overview / Payment", "payment"],
   ["evidence", "Evidence", "evidence"],
-  ["model", "3D Model", "model"],
+  ["model", "BIM / 3D Model", "model"],
   ["schedule", "Schedule", "schedule"],
-  ["report", "Report", "report"],
+  ["report", "Report & Letter", "report"],
   ["safety", "Safety", "safety"],
   ["costs", "AI Costs", "costs"],
 ];

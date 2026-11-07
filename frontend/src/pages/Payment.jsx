@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { api } from "../api/client.js";
 import { useStore } from "../store.jsx";
 import { Icon, Kpi, Legend, Loading, StatusPill, num, qar, fmtDate } from "../ui.jsx";
+import AskPanel from "../components/AskPanel.jsx";
 
 function QrCard() {
   const [svg, setSvg] = useState("");
@@ -49,6 +50,8 @@ export default function Payment() {
         <Kpi label="Discrepancy" value={t.discrepancy} tone="bad" hint="Claimed minus supported" />
         <Kpi label="Claimed with no evidence" value={t.noEvidence} tone="grey" hint="No photo submitted" />
       </section>
+
+      <AskPanel />
 
       <div className="grid-2-1">
         <section className="card">

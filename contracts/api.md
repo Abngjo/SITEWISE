@@ -19,6 +19,15 @@ Base: same origin as the Space. Local: `http://localhost:7860`. Interactive docs
 | GET | `/api/safety` | `Flag[]` | safety page |
 | GET | `/api/ai/costs` | escalation rate, avg latency, est cost vs always-VLM, cache_hits | AI ops panel / efficiency slide |
 | GET | `/api/report?lang=en|ar` | `{lang, direction, lines[], figures{}}` | report page |
+| GET | `/api/audit-letter?lang=en|ar` | `{lang, direction, header[], opening, opening_source, summary, items[], closing, findings[], figures{}}` | draft letter to contractor (figures from code; LLM writes only the opening, no digits allowed) |
+| GET | `/api/bim/summary` | `{schema, project, storeys[], element_counts{IfcClass:n}, total_elements, mapped_elements, unmapped_ifc_elements[], sitewise_records_missing_in_ifc[]}` | BIM page header: parsed live from project.ifc |
+| GET | `/api/bim/elements` | `[{ifc_guid, ifc_class, name, element_id, storey, mapped, boq_item_id, task_id, guid_matches_record}]` | BIM to BOQ to schedule mapping table |
+| GET | `/api/bim/elements/{element_id}` | one row + `status` + `record` | 3D click panel: show IFC GUID / class / storey |
+| POST | `/api/bim/import` | summary + `elements_preview[]` (multipart `file`=.ifc) | "Import BIM" demo step |
+| GET | `/api/model/claim-view` | `{element_id: claimed|certified|not_claimed}` | 3D "Contractor's claim" toggle |
+| GET | `/api/model/timeline` | `[{key, label, date, caption, status{element_id: status}}]` | 3D certificate replay |
+| GET | `/api/bim/export` | IFC file with Pset `SITEWISE_Evidence` on every element | "Export as-verified IFC" |
+| POST | `/api/ask` | `{answer, grounded: true|false|null, model, blocked_figures?}` (JSON `{question, lang}`) | Ask SITEWISE; every figure verified against computed data |
 | POST | `/api/admin/reset` | `{ok}` | reset before every rehearsal |
 | GET | `/m` | mobile upload page (QR code target) | judges' phones |
 
@@ -26,3 +35,7 @@ Status colors: supported `#2ECC71`, uncertain `#F1C40F`, discrepancy `#E74C3C`, 
 3D: load `/model.glb` once; node names are element_ids; recolor from `/api/model/status`.
 
 Notes: `Evidence` responses never include the `embedding` field. If AI fails, `ai.error` is set and `ai.requires_review` is true (no 500).
+
+AIResult additions: `claimed_complete` (bool: element claimed in current certificate → VLM always judges completion), `escalation_reason` (completion_check | label_mismatch | low_confidence | null), `completion` (complete | partial | not_started | unclear | null).
+
+Schedule forecast additions: `delay_exposure_qar`, `delay_damages_per_day_qar`, `delay_damages_note`. Overview adds `delay_exposure_qar`.

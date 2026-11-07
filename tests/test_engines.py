@@ -158,3 +158,86 @@ def test_identical_photo_uses_cache():
     r2 = client.post("/api/evidence", files={"file": ("b.jpg", img, "image/jpeg")}, data={"element_id": "W-203"}).json()
     assert r2["ai"].get("cache_hit") is True
     assert client.get("/api/ai/costs").json()["cache_hits"] >= 1
+
+
+# ---------------- completion check + audit letter ----------------
+def test_claimed_element_triggers_completion_check():
+    r = client.post("/api/evidence", files={"file": ("d.jpg", _img((90, 90, 200)), "image/jpeg")},
+                    data={"element_id": "D-201"}).json()
+    assert r["ai"]["claimed_complete"] is True        # D-201 is claimed in IPC-04
+    r2 = client.post("/api/evidence", files={"file": ("e.jpg", _img((200, 200, 90)), "image/jpeg")},
+                     data={"element_id": "C-201"}).json()
+    assert r2["ai"]["claimed_complete"] is False      # C-201 not claimed this period
+
+
+def test_audit_letter_en_ar_same_figures_and_findings():
+    en = client.get("/api/audit-letter?lang=en").json()
+    ar = client.get("/api/audit-letter?lang=ar").json()
+    assert en["figures"] == ar["figures"]
+    assert len(en["items"]) == len(ar["items"]) > 0
+    assert any("C-102" in i for i in en["items"])     # claimed, no photo
+    assert "QAR 98,520" in en["summary"] and "QAR 98,520" in ar["summary"]
+    assert ar["direction"] == "rtl"
+    assert not any(ch.isdigit() for ch in en["opening"])  # opening paragraph never carries figures
+
+
+# ---------------- BIM ----------------
+def test_bim_summary_parsed_from_ifc():
+    s = client.get("/api/bim/summary").json()
+    assert s["schema"] == "IFC4"
+    assert s["total_elements"] == 22 and s["mapped_elements"] == 22
+    assert s["element_counts"]["IfcDoor"] == 8
+    assert [x["name"] for x in s["storeys"]] == ["L1", "L2"]
+    e = client.get("/api/bim/elements/D-103").json()
+    assert e["ifc_class"] == "IfcDoor" and e["storey"] == "L1" and e["boq_item_id"] == "BOQ-DR-01"
+
+
+def test_bim_import_roundtrip():
+    from backend.store import DATA_DIR
+    b = (DATA_DIR / "project.ifc").read_bytes()
+    r = client.post("/api/bim/import", files={"file": ("x.ifc", b, "application/octet-stream")}).json()
+    assert r["mapped_elements"] == 22
+    bad = client.post("/api/bim/import", files={"file": ("x.ifc", b"hello", "application/octet-stream")})
+    assert bad.status_code == 400
+
+
+def test_claim_view_and_as_verified_export():
+    cv = client.get("/api/model/claim-view").json()
+    assert cv["D-201"] == "claimed" and cv["C-201"] == "not_claimed"
+    client.post("/api/elements/D-103/review", json={"decision": "supported", "reason": "ok"})
+    r = client.get("/api/bim/export")
+    assert r.status_code == 200 and r.content.startswith(b"ISO-10303-21")
+    import ifcopenshell, ifcopenshell.util.element as U, tempfile, os
+    p = os.path.join(tempfile.mkdtemp(), "x.ifc"); open(p, "wb").write(r.content)
+    f = ifcopenshell.open(p)
+    door = [e for e in f.by_type("IfcDoor") if e.Tag == "D-103"][0]
+    ps = U.get_psets(door)["SITEWISE_Evidence"]
+    assert ps["EvidenceStatus"] == "supported" and ps["SupportedValueQAR"] == 6500
+    assert ps["ClaimedThisCertificate"] is True
+
+
+def test_timeline_and_delay_exposure():
+    fr = client.get("/api/model/timeline").json()
+    keys = [f["key"] for f in fr]
+    assert keys[0] == "IPC-01" and keys[-1] == "verified-now" and "IPC-04-claim" in keys
+    ipc2 = [f for f in fr if f["key"] == "IPC-02"][0]["status"]
+    assert ipc2["S-101"] == "supported" and ipc2["W-101"] == "no_evidence"
+    ipc3 = [f for f in fr if f["key"] == "IPC-03"][0]["status"]
+    assert ipc3["W-101"] == "supported" and ipc3["D-101"] == "no_evidence"
+    fc = client.get("/api/schedule/forecast").json()
+    assert fc["delay_exposure_qar"] == max(0, fc["handover_delay_days"]) * 1800
+    assert client.get("/api/report").json()["figures"]["delay_exposure_qar"] == fc["delay_exposure_qar"]
+
+
+def test_ask_grounding_check():
+    from backend.engines import ask as A
+    from backend.main import overview, payments_audit, schedule_forecast
+    ctx = A.context(store, payments_audit(), schedule_forecast(), overview())
+    ok, bad = A.grounded("The gap is QAR 98,520 and C-102 (QAR 25,200) has no photo; IPC-04 on 2026-11-07, L2.", ctx)
+    assert ok, bad
+    ok, bad = A.grounded("The gap is QAR 98,999.", ctx)
+    assert not ok and 98999.0 in bad
+    ok, _ = A.grounded("الفرق ٩٨٥٢٠ ريال", ctx)  # Arabic-Indic digits normalised
+    assert ok
+    r = client.post("/api/ask", json={"question": "What is the gap?"}).json()
+    assert "answer" in r  # models disabled in tests -> graceful message

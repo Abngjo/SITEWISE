@@ -89,8 +89,13 @@ $("go").addEventListener("click", async () => {
     let h = `<div class="row"><span>Evidence</span><b>${esc(j.evidence_id)}</b></div>`;
     h += a.error ? `<div class="warn">AI unavailable. Sent to the engineer for review.</div>`
       : `<div class="row"><span>AI sees</span><b>${esc(a.final_label)}</b></div>
-         <div class="row"><span>Stage</span><span>${a.escalation_model_id ? "Escalated to VLM" : "Small model"}</span></div>`;
+         <div class="row"><span>First pass</span><span>${esc((a.model_id || "SigLIP2").split("/").pop())}</span></div>
+         <div class="row"><span>Stage</span><span>${a.escalation_model_id ? "Escalated to " + esc(a.escalation_model_id.split("/").pop()) : "Small model only"}</span></div>`;
+    const WHY = { completion_check: "Claimed complete: checking completion", label_mismatch: "Photo doesn't match the element", low_confidence: "Small model unsure" };
+    if (!a.error && a.escalation_reason) h += `<div class="row"><span>Why</span><span>${esc(WHY[a.escalation_reason] || a.escalation_reason)}</span></div>`;
+    if (a.completion) h += `<div class="row"><span>Completion</span><b>${esc(String(a.completion).replace("_", " "))}</b></div>`;
     if (a.vlm && a.vlm.reason) h += `<div class="row"><span>Reason</span><span>${esc(a.vlm.reason)}</span></div>`;
+    if (a.vlm_error) h += `<div class="warn">Big model unavailable: sent to engineer review.</div>`;
     if (!a.error) h += `<div class="row"><span>Matches element</span><span>${a.matches_declared_element ? "Yes" : "No"}</span></div>`;
     if (j.duplicates && j.duplicates.length) h += `<div class="warn">Possible reuse of ${esc(j.duplicates[0].evidence_id)} (${esc(j.duplicates[0].kind)}). Review needed.</div>`;
     (j.flags || []).forEach(f => h += `<div class="warn">${esc(f.message)}</div>`);
