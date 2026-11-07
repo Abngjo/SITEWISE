@@ -483,3 +483,16 @@ tfoot td { font-weight: 600; border-bottom: 0; background: var(--surface-2); }
 .rep-totals .supported b { color: var(--pos); }
 .rep-lines { margin: 0; padding-inline-start: 22px; display: grid; gap: 8px; font-size: .94rem; }
 .rep-lines li::marker { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* ---- BIM viewer: room labels, evidence pins, heat legend */
+.room-label { font: 600 11px/1.2 var(--f-sans); unicode-bidi: plaintext; letter-spacing: .02em; color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 78%, transparent); border: 1px solid var(--line-2);
+  padding: 3px 8px; border-radius: 999px; white-space: nowrap; backdrop-filter: blur(4px); user-select: none; }
+.ev-pin { display: inline-flex; align-items: center; gap: 3px; padding: 3px 7px 3px 6px; border-radius: 999px 999px 999px 2px;
+  font: 700 11px/1 var(--f-sans); color: #fff; background: #2563eb; border: 2px solid #fff; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .15s; }
+.ev-pin:hover, .ev-pin.on { transform: scale(1.18); background: #1d4ed8; }
+.viewer-reset { position: absolute; top: 10px; right: 10px; z-index: 2; }
+.heat-bar { display: inline-flex; align-items: center; gap: 6px; }
+.heat-bar b { display: inline-block; width: 120px; height: 10px; border-radius: 5px; }
+.heat-bar em { font-style: normal; font-size: 12px; color: var(--ink-2); }

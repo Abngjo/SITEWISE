@@ -83,3 +83,26 @@ def audit(boq: dict[str, dict], elements: dict[str, dict], reviews: dict[str, di
         },
         "note": "Recommendation only. Certification remains with the qualified engineer / QS.",
     }
+
+
+def element_risk(boq: dict[str, dict], elements: dict[str, dict], reviews: dict[str, dict],
+                 claims: list[dict]) -> dict:
+    """Money at risk per element, for the 3D heat view.
+    Each BOQ item's discrepancy (from audit()) is spread over the elements claimed under it, in
+    proportion to each element's unsupported value. So the per-element figures add up exactly to
+    the audit's total discrepancy; the 3D view never shows a number the audit doesn't."""
+    a = audit(boq, elements, reviews, claims)
+    out = {}
+    for it, c in zip(a["items"], claims):
+        rate = it["rate"]
+        ids = [x for x in str(c.get("claimed_element_ids") or "").split(";") if x in elements]
+        gaps = {e: max(0.0, float(elements[e]["quantity"]) - element_supported_qty(elements[e], reviews.get(e))) * rate
+                for e in ids}
+        total_gap = sum(gaps.values())
+        for e, g in gaps.items():
+            share = it["discrepancy"] * g / total_gap if total_gap else 0.0
+            out[e] = {"at_risk": round(share, 2), "claimed_value": round(float(elements[e]["quantity"]) * rate, 2),
+                      "boq_item_id": it["boq_item_id"]}
+    total = round(sum(v["at_risk"] for v in out.values()), 2)
+    return {"elements": out, "total_at_risk": total, "audit_discrepancy": a["totals"]["discrepancy"],
+            "max_at_risk": max([v["at_risk"] for v in out.values()] or [0])}

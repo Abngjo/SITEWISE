@@ -40,7 +40,7 @@ export default function Login({ onSignedIn, theme, setTheme }) {
           <h1>Evidence-backed payment auditing for Qatar's construction projects.</h1>
           <p>Every claimed quantity is checked against site photos, the building model and BOQ rates before anyone certifies a riyal.</p>
           <ol className="flow">
-            <li><b>AI observes</b><span>SigLIP2 reads each photo; uncertain ones go to Qwen2.5-VL.</span></li>
+            <li><b>AI observes</b><span>SigLIP2 reads each photo; uncertain ones go to Gemma 4.</span></li>
             <li><b>Evidence supports</b><span>Reuse checks, BOQ rates and the summer heat rule.</span></li>
             <li><b>Engineer certifies</b><span>Only a person's decision changes payment.</span></li>
           </ol>

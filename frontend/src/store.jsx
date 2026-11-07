@@ -43,7 +43,7 @@ export function StoreProvider({ children }) {
     const fresh = known ? ev.find(x => !known.has(x.evidence_id)) : null;
     knownEvidence.current = new Set(ev.map(x => x.evidence_id));
     if (fresh) setEvent({ kind: "upload", id: fresh.element_id, text: `New photo for ${fresh.element_id || "unassigned"}`,
-      sub: fresh.ai.error ? "AI unavailable, review needed" : fresh.ai.escalated ? "Escalated to Qwen2.5-VL" : `SigLIP2 · ${fresh.ai.final_label}`, at: Date.now() });
+      sub: fresh.ai.error ? "AI unavailable, review needed" : fresh.ai.escalated ? `Escalated to ${fresh.ai.vlm_model?.includes("Qwen") ? "Qwen2.5-VL" : "Gemma 4"}` : `SigLIP2 · ${fresh.ai.final_label}`, at: Date.now() });
     setEvidence(ev); setModelStatus(m); setElements(e); setAudit(a); setSchedule(s);
   }, []);
 

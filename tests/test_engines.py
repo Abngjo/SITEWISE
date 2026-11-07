@@ -6,8 +6,6 @@ import os
 from datetime import date
 
 os.environ["SITEWISE_DISABLE_MODELS"] = "1"
-os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["SITEWISE_STATE_FILE"] = "/tmp/sitewise_test_state.json"
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -187,8 +185,10 @@ def test_audit_letter_en_ar_same_figures_and_findings():
 def test_bim_summary_parsed_from_ifc():
     s = client.get("/api/bim/summary").json()
     assert s["schema"] == "IFC4"
-    assert s["total_elements"] == 22 and s["mapped_elements"] == 22
-    assert s["element_counts"]["IfcDoor"] == 8
+    assert s["mapped_elements"] == 22 and s["context_elements"] >= 30
+    assert s["total_elements"] == s["mapped_elements"] + s["context_elements"]
+    assert not s["unmapped_ifc_elements"] and not s["sitewise_records_missing_in_ifc"]
+    assert s["element_counts"]["IfcDoor"] == 8 and s["element_counts"]["IfcWindow"] > 0
     assert [x["name"] for x in s["storeys"]] == ["L1", "L2"]
     e = client.get("/api/bim/elements/D-103").json()
     assert e["ifc_class"] == "IfcDoor" and e["storey"] == "L1" and e["boq_item_id"] == "BOQ-DR-01"
@@ -243,3 +243,11 @@ def test_ask_grounding_check():
     assert ok
     r = client.post("/api/ask", json={"question": "What is the gap?"}).json()
     assert "answer" in r  # models disabled in tests -> graceful message
+
+
+def test_model_overlay_reconciles_with_audit():
+    o = client.get("/api/model/overlay").json()
+    a = client.get("/api/payments/audit").json()
+    assert abs(o["total_at_risk"] - a["totals"]["discrepancy"]) < 0.05
+    assert all(v["at_risk"] >= 0 for v in o["elements"].values())
+    assert not any(k.startswith("CTX-") for k in o["elements"])

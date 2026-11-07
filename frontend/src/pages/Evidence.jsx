@@ -30,7 +30,7 @@ function Upload({ elements, defaultElement, onUploaded }) {
       const ev = await upload(file, el);
       setMsg({ text: ev.ai.error
         ? `${ev.evidence_id} saved. The AI was unavailable, so the line needs engineer review.`
-        : `${ev.evidence_id} analysed: ${ev.ai.final_label} ${(ev.ai.top_score * 100).toFixed(0)}%${ev.ai.escalated ? ", escalated to Qwen2.5-VL" : ""}${ev.duplicates.length ? ". Possible reuse found." : "."}` });
+        : `${ev.evidence_id} analysed: ${ev.ai.final_label} ${(ev.ai.top_score * 100).toFixed(0)}%${ev.ai.escalated ? ", escalated to " + (ev.ai.vlm_model?.includes("Qwen") ? "Qwen2.5-VL" : "Gemma 4") : ""}${ev.duplicates.length ? ". Possible reuse found." : "."}` });
       setFile(null); onUploaded(ev);
     } catch (e) {
       setMsg({ bad: true, text: `${e.message}. The photo was not saved; try again.` });

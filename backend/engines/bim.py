@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections import Counter
 from pathlib import Path
 
-BUILDING_CLASSES = ("IfcWall", "IfcSlab", "IfcDoor", "IfcCovering", "IfcWindow", "IfcColumn", "IfcBeam")
+BUILDING_CLASSES = ("IfcWall", "IfcSlab", "IfcDoor", "IfcCovering", "IfcWindow", "IfcColumn", "IfcBeam", "IfcStair")
 
 
 def _storey_of(el) -> str | None:
@@ -38,20 +38,23 @@ def parse(ifc_path: str | Path, elements: dict[str, dict]) -> dict:
                 "ifc_guid": el.GlobalId, "ifc_class": el.is_a(), "name": el.Name,
                 "element_id": eid, "storey": _storey_of(el),
                 "mapped": rec is not None,
+                "context": bool(eid and eid.startswith("CTX-")),
                 "boq_item_id": rec["boq_item_id"] if rec else None,
                 "task_id": rec["task_id"] if rec else None,
                 "guid_matches_record": (rec is not None and rec.get("ifc_guid") in ("", None, el.GlobalId)),
             })
     ifc_ids = {r["element_id"] for r in rows if r["element_id"]}
     missing_in_ifc = sorted(set(elements) - ifc_ids)
-    unmapped = [r for r in rows if not r["mapped"]]
+    context = [r for r in rows if r["context"]]
+    unmapped = [r for r in rows if not r["mapped"] and not r["context"]]
     return {
         "schema": f.schema,
         "project": project.Name if project else None,
         "storeys": [{"name": n, "elevation_m": e} for n, e in storeys],
         "element_counts": dict(counts),
         "total_elements": len(rows),
-        "mapped_elements": len(rows) - len(unmapped),
+        "mapped_elements": sum(1 for r in rows if r["mapped"]),
+        "context_elements": len(context),
         "unmapped_ifc_elements": unmapped,
         "sitewise_records_missing_in_ifc": missing_in_ifc,
         "elements": rows,

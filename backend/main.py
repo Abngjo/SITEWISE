@@ -116,6 +116,18 @@ def model_status():
     return {eid: store.element_status(eid) for eid in store.elements}
 
 
+@app.get("/api/model/overlay")
+def model_overlay():
+    """For the 3D heat view and evidence pins: QAR at risk per element (reconciles to the audit)
+    and how many evidence photos are linked to each element."""
+    risk = payment.element_risk(store.boq, store.elements, store.reviews, store.claims)
+    counts: dict[str, int] = {}
+    for e in store.evidence.values():
+        if e.get("element_id") in store.elements:
+            counts[e["element_id"]] = counts.get(e["element_id"], 0) + 1
+    return {**risk, "evidence_counts": counts}
+
+
 @app.get("/api/model/timeline")
 def model_timeline():
     """Frames for the 3D replay: what was verified at each certificate, then this month's claim, then now."""

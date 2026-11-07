@@ -33,14 +33,14 @@ export default function Costs() {
           <>
             <div className="cmp">
               <div className="cmp-row"><span>SITEWISE routing</span><div className="cmp-track"><i className="ours" style={{ width: `${(c.total_cost_usd / max) * 100}%` }} /></div><b>{usd(c.total_cost_usd)}</b></div>
-              <div className="cmp-row"><span>Always Qwen2.5-VL</span><div className="cmp-track"><i style={{ width: "100%" }} /></div><b>{usd(c.always_big_model_cost_usd)}</b></div>
+              <div className="cmp-row"><span>Always Gemma 4</span><div className="cmp-track"><i style={{ width: "100%" }} /></div><b>{usd(c.always_big_model_cost_usd)}</b></div>
             </div>
             <p className="small"><b>{(saved * 100).toFixed(0)}% lower</b> estimated cost for this claim's photos. Replace with the test-split results from the model card before quoting them.</p>
           </>
         )}
         <dl className="kv mt">
           <dt>Stage 1</dt><dd>SigLIP2 (or the fine-tuned checkpoint) on the Space</dd>
-          <dt>Stage 2</dt><dd>Qwen2.5-VL via Hugging Face Inference Providers</dd>
+          <dt>Stage 2</dt><dd>Gemma 4 (Qwen2.5-VL fallback) via Hugging Face Inference Providers</dd>
         </dl>
       </section>
     </>
