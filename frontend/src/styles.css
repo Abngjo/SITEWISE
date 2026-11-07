@@ -492,7 +492,8 @@ tfoot td { font-weight: 600; border-bottom: 0; background: var(--surface-2); }
   font: 700 11px/1 var(--f-sans); color: #fff; background: #2563eb; border: 2px solid #fff; cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .15s; }
 .ev-pin:hover, .ev-pin.on { transform: scale(1.18); background: #1d4ed8; }
-.viewer-reset { position: absolute; top: 10px; right: 10px; z-index: 2; }
+.viewer-actions { position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; gap: 8px; }
+.viewer-focus { max-width: 250px; min-height: 32px; padding: 5px 30px 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); }
 .heat-bar { display: inline-flex; align-items: center; gap: 6px; }
 .heat-bar b { display: inline-block; width: 120px; height: 10px; border-radius: 5px; }
 .heat-bar em { font-style: normal; font-size: 12px; color: var(--ink-2); }

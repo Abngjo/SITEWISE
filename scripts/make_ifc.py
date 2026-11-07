@@ -212,6 +212,19 @@ def main():
                 B.space(lv, rname, rname_ar, x0, ry0, x1, ry1)
         B.space(lv, "Corridor", "الممر", T, CORR_S, LX - T, CORR_N)
 
+        # Visible exterior entrance, outside the audited Package B scope.
+        if lv == "L1":
+            g0, g1 = 7.85, 9.15
+            y0, y1 = -0.08, -0.01
+            entrance = [
+                box(g0, y0, wz, g0 + 0.08, y1, wz + 2.25),
+                box(g1 - 0.08, y0, wz, g1, y1, wz + 2.25),
+                box(g0, y0, wz + 2.17, g1, y1, wz + 2.25),
+                box(g0 + 0.08, y0 - 0.02, wz + 0.01, g1 - 0.08, y1, wz + 2.17),
+            ]
+            B.element("IfcDoor", "CTX-L1-ENTRANCE", "Main external entrance (Package A)",
+                      "L1", entrance, scope="context")
+
         # ---- PACKAGE: suspended ceilings (zone A / B)
         for cid, (x0, x1) in ((f"C-{n}01", (T, XMID)), (f"C-{n}02", (XMID, LX - T))):
             B.element("IfcCovering", cid, f"{cid} {by_id[cid]['name']}", lv,

@@ -5,6 +5,7 @@ Endpoint contract lives in contracts/api.md. Do not change shapes without tellin
 from __future__ import annotations
 
 import sys
+import threading
 import uuid
 from datetime import date, datetime
 from pathlib import Path
@@ -244,14 +245,19 @@ def get_report(lang: str = "en"):
 
 # ------------------------------------ BIM -------------------------------------
 _BIM_CACHE: dict = {}
+_BIM_LOCK = threading.Lock()
 
 
 def _bim_summary() -> dict:
     if "default" not in _BIM_CACHE:
-        try:
-            _BIM_CACHE["default"] = bim.parse(DATA_DIR / "project.ifc", store.elements)
-        except Exception as e:
-            return {"error": f"IFC parse failed: {e}"}
+        # The model page requests the summary and selected element in parallel.
+        # IfcOpenShell must not open the same SPF file concurrently during startup.
+        with _BIM_LOCK:
+            if "default" not in _BIM_CACHE:
+                try:
+                    _BIM_CACHE["default"] = bim.parse(DATA_DIR / "project.ifc", store.elements)
+                except Exception as e:
+                    return {"error": f"IFC parse failed: {e}"}
     return _BIM_CACHE["default"]
 
 

@@ -21,11 +21,13 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
    Clicking a pin flies to the element and opens a small card beside the pin; onOpenEvidence(evidence_id) opens it
    on the Evidence page. The card closes with ×, Escape, or a click on empty space. */
 export default function Viewer3D({ status, selected, onSelect, flash, explode, hideL2, theme,
-                                   xray = false, labels = true, pins = {}, lang = "en", photos = {}, onOpenEvidence }) {
+                                   xray = false, labels = true, pins = {}, lang = "en", photos = {}, onOpenEvidence,
+                                   focusOptions = [] }) {
   const host = useRef();
   const ctx = useRef({});
   const [state, setState] = useState("loading");
   const [card, setCard] = useState(null); // element_id whose photo card is open
+  const [focusChoice, setFocusChoice] = useState("");
 
   useEffect(() => {
     const el = host.current;
@@ -112,7 +114,7 @@ export default function Viewer3D({ status, selected, onSelect, flash, explode, h
         o.userData = {
           id, ctx: isCtx, baseY: o.position.y,
           level: isCtx ? (id.includes("-L2-") ? "L2" : "L1") : PKG_LEVEL(id),
-          kind: isCtx ? (id.includes("-WIN-") ? "glass" : id.includes("ROOF") ? "roof" : "ghost")
+          kind: isCtx ? (id.includes("ENTRANCE") ? "entrance" : id.includes("STAIR") ? "stair" : id.includes("-WIN-") ? "glass" : id.includes("ROOF") ? "roof" : "ghost")
                       : id[0] === "D" ? "door" : id[0] === "C" ? "ceiling" : id[0] === "W" ? "wall" : "slab",
         };
         meshes[id] = o;
@@ -207,8 +209,40 @@ export default function Viewer3D({ status, selected, onSelect, flash, explode, h
     loop();
 
     ctx.current = {
-      ...ctx.current, meshes, renderer, scene, grid, flyTo, home, levelGroups,
-      fitDistance, resetView: () => { ctx.current.flown = false; flyTo(home.target, fitDistance(), VIEW_DIR); },
+      ...ctx.current, meshes, renderer, scene, grid, flyTo, home, levelGroups, controls,
+      fitDistance, resetView: () => {
+        controls.maxPolarAngle = Math.PI * 0.495;
+        ctx.current.focusId = null;
+        ctx.current.applyAll?.();
+        ctx.current.flown = false;
+        flyTo(home.target, fitDistance(), VIEW_DIR);
+      },
+      focusElement: id => {
+        const m = meshes[id];
+        if (!m) return;
+        m.updateWorldMatrix(true, false);
+        const bb = m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld);
+        const center = bb.getCenter(new THREE.Vector3());
+        const size = bb.getSize(new THREE.Vector3()).length();
+        // Each element type needs a useful inspection angle. Ceilings use a tight
+        // top-down view; stairs and doors use close oblique views.
+        const isDoor = m.userData.kind === "door" || m.userData.kind === "entrance";
+        const isCeiling = m.userData.kind === "ceiling";
+        const isStair = m.userData.kind === "stair";
+        controls.maxPolarAngle = Math.PI * 0.495;
+        const direction = isCeiling
+          ? new THREE.Vector3(0.06, 1, 0.06).normalize()
+          : isStair
+            ? new THREE.Vector3(0.25, 0.45, 1).normalize()
+            : isDoor
+          ? new THREE.Vector3(0.22, 0.12, center.z >= home.target.z ? 1 : -1).normalize()
+          : VIEW_DIR;
+        const distance = isCeiling ? 20.5 : isStair ? 7 : isDoor ? 4.5 : Math.min(28, Math.max(7, size * 1.6));
+        ctx.current.focusId = id;
+        ctx.current.applyAll?.();
+        ctx.current.flown = true;
+        flyTo(center, distance, direction);
+      },
     };
     return () => {
       cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
@@ -222,19 +256,25 @@ export default function Viewer3D({ status, selected, onSelect, flash, explode, h
     Object.assign(c, { onSelect, selected, flash, explode, hideL2, xray, labels });
     c.applyAll = () => {
       const dark = theme !== "light";
+      const isolatingStair = c.meshes?.[c.focusId]?.userData.kind === "stair";
       for (const [id, m] of Object.entries(c.meshes || {})) {
         const u = m.userData, mat = m.material;
         let opacity = 1;
         if (u.ctx) {
-          if (u.kind === "glass") { mat.color.set(dark ? 0x6fb7e8 : 0x8cc8f0); opacity = xray ? 0.08 : 0.32; mat.roughness = 0.1; }
+          if (u.kind === "entrance") { mat.color.set(dark ? 0x38bdf8 : 0x0284c7); opacity = 1; mat.roughness = 0.65; }
+          else if (u.kind === "stair") { mat.color.set(dark ? 0xf59e0b : 0xd97706); opacity = 0.92; mat.roughness = 0.75; }
+          else if (u.kind === "glass") { mat.color.set(dark ? 0x6fb7e8 : 0x8cc8f0); opacity = xray ? 0.08 : 0.32; mat.roughness = 0.1; }
           else { mat.color.set(dark ? 0x8b97a6 : 0xc9d1db); opacity = xray ? 0.04 : u.kind === "roof" ? 0.1 : 0.2; }
-          m.children[0].material.opacity = xray ? 0.05 : 0.14;
         } else {
           mat.color.set(colorOf(status[id] || "no_evidence"));
           const focus = id === selected || u.kind === "door" || (flash && id in flash);
           if (xray && !focus) opacity = u.kind === "slab" ? 0.12 : 0.18;
           else if (u.kind === "ceiling") opacity = id === selected ? 0.9 : 0.5;
         }
+        if (isolatingStair) opacity = id === c.focusId ? 1 : Math.min(opacity, 0.035);
+        m.children[0].material.opacity = isolatingStair && id !== c.focusId
+          ? 0.025
+          : u.ctx ? (xray ? 0.05 : 0.14) : 0.35;
         mat.transparent = opacity < 1;
         mat.opacity = opacity;
         mat.depthWrite = opacity >= 1;
@@ -244,18 +284,6 @@ export default function Viewer3D({ status, selected, onSelect, flash, explode, h
     };
     c.applyAll();
   }, [status, selected, onSelect, flash, explode, hideL2, xray, labels, theme, state]);
-
-  // ---- fly to the selected element (not on first load: open on the whole building)
-  useEffect(() => {
-    const c = ctx.current, m = c.meshes?.[selected];
-    if (!m || !c.flyTo) return;
-    if (!c.seenFirst) { c.seenFirst = true; return; }
-    const bb = m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld);
-    const center = bb.getCenter(new THREE.Vector3());
-    const size = bb.getSize(new THREE.Vector3()).length();
-    c.flown = true;
-    c.flyTo(center, Math.min(28, Math.max(7, size * 1.6)));
-  }, [selected, state]);
 
   // ---- evidence pins (camera badge per element with photos)
   useEffect(() => {
@@ -341,12 +369,31 @@ export default function Viewer3D({ status, selected, onSelect, flash, explode, h
     c.meshes && Object.values(c.meshes).forEach(m => !m.userData.ctx && m.children[0].material.color.set(theme === "light" ? 0x1b2433 : 0x05080f));
   }, [theme, state, lang]);
 
+  const focusTarget = focusChoice || selected;
+
   return (
     <div className="viewer" ref={host} style={{ position: "relative" }}>
       {state === "ready" && (
-        <button className="btn sm viewer-reset" onClick={() => ctx.current.resetView?.()} title="Back to the whole building">
-          Reset view
-        </button>
+        <div className="viewer-actions">
+          {focusOptions.length > 0 && <select className="viewer-focus" value={focusChoice} aria-label="Focus model point" onChange={e => {
+            const id = e.target.value;
+            if (!id) return;
+            setFocusChoice(id);
+            if (!id.startsWith("CTX-")) ctx.current.onSelect?.(id);
+          }}>
+            <option value="" disabled>Focus point…</option>
+            {focusOptions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>}
+          {focusTarget && <button className="btn sm" onClick={() => ctx.current.focusElement?.(focusTarget)} title={`Focus ${focusTarget} in the model`}>
+            Focus {focusTarget}
+          </button>}
+          <button className="btn sm" onClick={() => {
+            setFocusChoice("");
+            ctx.current.resetView?.();
+          }} title="Back to the whole building">
+            Reset view
+          </button>
+        </div>
       )}
       {state === "loading" && <div className="viewer-msg"><span className="spinner" />Loading model.glb…</div>}
       {state === "error" && <div className="viewer-msg err">Couldn't load /model.glb. Run <code>npm run glb</code>, or check that the backend serves it.</div>}

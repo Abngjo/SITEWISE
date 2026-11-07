@@ -188,7 +188,7 @@ def test_bim_summary_parsed_from_ifc():
     assert s["mapped_elements"] == 22 and s["context_elements"] >= 30
     assert s["total_elements"] == s["mapped_elements"] + s["context_elements"]
     assert not s["unmapped_ifc_elements"] and not s["sitewise_records_missing_in_ifc"]
-    assert s["element_counts"]["IfcDoor"] == 8 and s["element_counts"]["IfcWindow"] > 0
+    assert s["element_counts"]["IfcDoor"] == 9 and s["element_counts"]["IfcWindow"] > 0
     assert [x["name"] for x in s["storeys"]] == ["L1", "L2"]
     e = client.get("/api/bim/elements/D-103").json()
     assert e["ifc_class"] == "IfcDoor" and e["storey"] == "L1" and e["boq_item_id"] == "BOQ-DR-01"

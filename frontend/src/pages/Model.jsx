@@ -180,6 +180,11 @@ export default function Model() {
   const onSelect = useCallback(id => setSel(id), []);
   const el = elements.find(e => e.element_id === sel);
   const counts = Object.values(modelStatus).reduce((a, s) => ((a[s] = (a[s] || 0) + 1), a), {});
+  const focusOptions = useMemo(() => [
+    { id: "CTX-L1-ENTRANCE", label: "Exterior entrance" },
+    { id: "CTX-L1-STAIR", label: "Main stair · L1 to L2" },
+    ...elements.map(e => ({ id: e.element_id, label: `${e.element_id} · ${e.name_en}` })),
+  ], [elements]);
 
   return (
     <>
@@ -209,7 +214,7 @@ export default function Model() {
         <section className="card flush viewer-card">
           <Viewer3D status={shown} selected={sel} onSelect={onSelect} flash={flash} explode={explode} hideL2={hideL2} theme={theme}
             xray={xray} labels={rooms !== "off"} lang={rooms === "ar" ? "ar" : "en"} pins={pins}
-            photos={photos} onOpenEvidence={openEvidence} />
+            photos={photos} onOpenEvidence={openEvidence} focusOptions={focusOptions} />
           {replaying && (
             <div className="viewer-legend" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
               <div className="row" style={{ justifyContent: "space-between" }}>
