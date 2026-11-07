@@ -14,7 +14,7 @@ pipeline_tag: image-classification
 # SITEWISE construction evidence classifier (team-QH045)
 
 Fine-tuned SigLIP2 that labels construction photos as `door`, `wall`, `ceiling` or `other`.
-It is the cheap first stage of SITEWISE, an AI auditor for construction payment claims in Qatar: confident predictions stay on CPU, uncertain ones escalate to Gemma (`google/gemma-4-31B-it`, with `Qwen/Qwen2.5-VL-72B-Instruct` as fallback) via Inference Providers, and every result goes to a human engineer.
+It is the cheap first stage of SITEWISE, an AI auditor for construction payment claims in Qatar: confident predictions stay on CPU, while low-confidence photos, label mismatches and elements claimed as complete escalate to Gemma (`google/gemma-4-31B-it`, with `Qwen/Qwen2.5-VL-72B-Instruct` as fallback) via Inference Providers. Every result goes to a human engineer.
 
 **This model produces observations, not certification.** It cannot measure installed quantity or quality.
 
@@ -46,18 +46,25 @@ classifier("site_photo.jpg")
 
 ## Results
 
-Held-out evaluation on the dataset's fixed `test` split (n=32, 8 photos per class). This split was **not** used to tune prompts, thresholds or model weights (see `data/a7_evaluation/REPORT.md` for the full methodology and `data/a7_evaluation/summary.json` for raw numbers).
+Evaluation on the dataset's fixed `test` split (n=32, 8 photos per class). The split was not used to tune prompts or thresholds, and it did not train the weights, but **it was used to choose this model's best epoch**, so this model's score is not fully independent. See `data/a7_evaluation/REPORT.md` for the method and `data/a7_evaluation/summary.json` for raw numbers.
 
 | Setup | Accuracy | Macro F1 | Avg latency | Est. cost / photo | Escalation |
 |---|---|---|---|---|---|
 | SigLIP2 zero-shot | 96.88% | 0.969 | 0.024 s | $0.000000 | 0% |
 | **This model (fine-tuned SigLIP2)** | 100.00% | 1.000 | 0.014 s | $0.000000 | 0% |
 | Gemma on every photo | 100.00% | 1.000 | 3.277 s | $0.000084 | 100% |
-| **SITEWISE cascade (this model + escalation)** | 100.00% | 1.000 | 0.418 s | $0.000013 | 15.6% |
+| Cascade as tested (**zero-shot** stage 1 + Gemma) | 100.00% | 1.000 | 0.418 s | $0.000013 | 15.6% |
 
-The cascade matches always-calling-Gemma on accuracy while being **about 6.5× cheaper and 7.8× faster per photo on average**, by escalating only the 15.6% of photos the small model is unsure about. Costs are calculated from measured token counts at published Inference Providers rates, not provider-confirmed billing.
+**What the cascade row does and doesn't measure:**
+- Its first stage was zero-shot SigLIP2, not this fine-tuned model. A cascade using this model has not been measured.
+- It had no completion claims. In the app, every photo of an element claimed in the current certificate goes to Gemma for a completion check, so real escalation on those photos is 100%, not 15.6%.
+- For routine classification only, it was about 6.5× cheaper and 7.8× faster per photo than Gemma on every photo. Don't read that as the saving for a full payment audit.
 
-**Read this with the dataset's limits in mind, not as real-world accuracy.** n=32 is small, every image was hand-picked by one person for clarity, and most are not Qatar or Gulf site photos (see Limitations). The 96.88–100% range across every setup, including zero-shot, mostly says these particular test photos are easy to tell apart — it is not evidence the model will perform this well on messy, low-light or partial real site photos.
+Costs are calculated from measured token counts at published rates, not provider-confirmed billing. Local latencies come from the evaluator's machine, which may have used a GPU, so they may not match CPU hardware.
+
+On the team's separate 37-photo development set, this model scored 97.30% (macro F1 0.973) against 91.89% (0.921) for zero-shot. See `ai/finetuned_compatibility.md`.
+
+**These are not real-world accuracy figures.** n=32 is small, every image was hand-picked by one person for clarity, and most are not Qatar or Gulf site photos. Zero-shot also scored 96.88%, so these test photos are easy to tell apart. Expect lower accuracy on messy, low-light or partial site photos.
 
 ## Limitations
 - The dataset is small (144 images total), with limited site and lighting diversity, and labels were assigned by one person from thumbnails.
